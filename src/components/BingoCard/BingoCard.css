@@ -1,0 +1,31 @@
+/* src/styles/BingoCard.css */
+
+.bingo-card {
+  display: grid;
+  grid-template-columns: repeat(5, 60px);
+  gap: 8px;
+  margin: 20px auto;
+  justify-content: center;
+}
+
+.bingo-row {
+  display: contents;
+}
+
+.bingo-cell {
+  width: 60px;
+  height: 60px;
+  background-color: #f0f0f0;
+  border: 2px solid #ccc;
+  text-align: center;
+  line-height: 60px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.bingo-cell.marked {
+  background-color: #4caf50;
+  color: white;
+}

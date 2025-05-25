@@ -1,0 +1,28 @@
+.game-container {
+  max-width: 600px;
+  margin: auto;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.partida-info p {
+  margin: 0.5rem 0;
+}
+
+.acciones-cartones {
+  margin-top: 2rem;
+}
+
+.cartones-lista {
+  margin-top: 2rem;
+  text-align: left;
+}
+
+.cartones-lista ul {
+  list-style: none;
+  padding: 0;
+}

@@ -1,0 +1,19 @@
+.admin-panel {
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f6fc;
+  min-height: 100vh;
+}
+
+.admin-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-content {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+}

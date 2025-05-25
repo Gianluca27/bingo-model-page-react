@@ -1,0 +1,23 @@
+.config-container {
+  max-width: 500px;
+  margin: 50px auto;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+}
+
+.config-container input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+}
+
+.success-message {
+  color: green;
+  font-weight: bold;
+  margin-top: 1rem;
+}

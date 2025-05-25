@@ -1,0 +1,133 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #0b0f50;
+  font-family: 'Poppins', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.register-container {
+    display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-logo {
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 24px;
+  display: block;
+  object-fit: contain;
+}
+
+.register-form {
+  width: 100%;
+  max-width: 360px;
+  padding: 20px 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+
+  border: 5px dotted #ffa500;
+  animation: blink-border 1.5s linear infinite;
+}
+
+.register-form h2 {
+  margin-bottom: 24px;
+  color: #333;
+  font-size: 26px;
+}
+
+.register-form input {
+  width: 90%;
+  padding: 15px;
+  margin: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 17px;
+}
+
+#last-input {
+  margin-bottom: 25px;
+}
+
+.register-form button {
+  width: 100%;
+  padding: 14px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 17px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background-color 0.3s ease;
+  font-weight: 600;
+}
+
+.register-form button:hover {
+  background-color: #1565c0;
+}
+
+.register-form p {
+  font-size: 15px;
+  margin: 7px;
+  padding-bottom: 5px;
+  color: #ff0400;
+}
+
+.register-form a {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.register-form a:hover {
+  text-decoration: underline;
+}
+
+.error {
+  text-align: left;
+  align-self: flex-start;
+  padding-left: 4px;
+  width: 100%;
+  color: #e53935;
+  font-size: 13px;
+  margin-top: -6px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+@keyframes blink-border {
+  0% { border-color: #ffa500; }
+  25% { border-color: #ffd700; }
+  50% { border-color: #ff8c00; }
+  75% { border-color: #ffc107; }
+  100% { border-color: #ffa500; }
+}
+
+@media (max-height: 700px), (max-width: 400px) {
+  .auth-form {
+    padding: 16px;
+    max-width: 320px;
+    font-size: 0.9rem;
+  }
+
+  .auth-form input,
+  .auth-form button {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+
+  .auth-logo {
+    max-width: 160px;
+    margin-bottom: 16px;
+  }
+}

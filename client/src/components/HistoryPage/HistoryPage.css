@@ -1,0 +1,33 @@
+.history-page {
+  padding: 2rem;
+  color: white;
+  font-family: 'Poppins', sans-serif;
+}
+
+.history-page h3 {
+  margin-bottom: 1rem;
+}
+
+.history-page table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  color: black;
+  font-size: 14px;
+}
+
+.history-page th,
+.history-page td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+
+.history-page button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+}

@@ -1,0 +1,43 @@
+.games-page {
+  font-family: 'Poppins', sans-serif;
+}
+
+table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+
+input, select {
+  width: 100%;
+  padding: 8px;
+  margin: 6px 0;
+}
+
+.form-container {
+  margin-top: 20px;
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+.game-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-primary { background: #0b0f50; color: white; border: none; padding: 10px; cursor: pointer; }
+.btn-success { background: #388e3c; color: white; border: none; padding: 10px; cursor: pointer; }
+.btn-danger  { background: #d32f2f; color: white; border: none; padding: 10px; cursor: pointer; }

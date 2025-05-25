@@ -33,7 +33,7 @@ const LoginForm = () => {
           creditos: data.creditos,
           admin: data.admin
         });
-        navigate('/welcome');
+        navigate('/game');
       } else {
         setError(data.error || 'Credenciales incorrectas');
       }
@@ -45,7 +45,7 @@ const LoginForm = () => {
 
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
-      <img src="../../assets/images/bingomania-logo.png" alt="Bingo Logo" className="form-logo" />
+      <img src="/bingomaniamia-logo.png" alt="Bingo Logo" className="form-logo" />
       <h2>Iniciar Sesión</h2>
       <input
         type="text"
@@ -62,7 +62,6 @@ const LoginForm = () => {
         value={credentials.password}
         onChange={handleChange}
         required
-        id="last-input"
       />
       {error && <p className="error">{error}</p>}
       <button type="submit">Entrar</button>

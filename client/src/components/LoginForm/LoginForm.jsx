@@ -19,7 +19,7 @@ const LoginForm = () => {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3000/login', {
+      const res = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
@@ -33,7 +33,7 @@ const LoginForm = () => {
           creditos: data.creditos,
           admin: data.admin
         });
-        navigate('/game');
+        navigate('/welcome');
       } else {
         setError(data.error || 'Credenciales incorrectas');
       }
@@ -44,29 +44,32 @@ const LoginForm = () => {
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <img src="/bingomaniamia-logo.png" alt="Bingo Logo" className="form-logo" />
-      <h2>Iniciar Sesión</h2>
-      <input
-        type="text"
-        name="username"
-        placeholder="Usuario"
-        value={credentials.username}
-        onChange={handleChange}
-        required
-      />
-      <input
-        type="password"
-        name="password"
-        placeholder="Contraseña"
-        value={credentials.password}
-        onChange={handleChange}
-        required
-      />
-      {error && <p className="error">{error}</p>}
-      <button type="submit">Entrar</button>
-      <p>¿No tenés cuenta? <Link to="/register">Registrate</Link></p>
-    </form>
+    <div className="login-container">
+      <img src="/assets/images/bingomaniamia-logo.png" alt="Bingo Logo" className="form-logo" />
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <h2>Iniciar Sesión</h2>
+        <input
+          type="text"
+          name="username"
+          placeholder="Usuario"
+          value={credentials.username}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="Contraseña"
+          value={credentials.password}
+          onChange={handleChange}
+          required
+          id="last-input"
+        />
+        {error && <p className="error">{error}</p>}
+        <button type="submit">Entrar</button>
+        <p>¿No tenés cuenta? <Link to="/register">Registrate</Link></p>
+      </form>
+    </div>
   );
 };
 

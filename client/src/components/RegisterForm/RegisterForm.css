@@ -15,7 +15,7 @@ html, body {
   align-items: center;
 }
 
-.auth-logo {
+.form-logo {
   width: 100%;
   max-width: 320px;
   margin-bottom: 24px;
@@ -26,7 +26,7 @@ html, body {
 .register-form {
   width: 100%;
   max-width: 360px;
-  padding: 20px 20px;
+  padding: 15px 15px;
   background-color: #ffffff;
   border-radius: 8px;
   text-align: center;
@@ -41,7 +41,7 @@ html, body {
 }
 
 .register-form h2 {
-  margin-bottom: 24px;
+  margin-bottom: 15px;
   color: #333;
   font-size: 26px;
 }
@@ -114,19 +114,19 @@ html, body {
 }
 
 @media (max-height: 700px), (max-width: 400px) {
-  .auth-form {
+  .register-form {
     padding: 16px;
     max-width: 320px;
     font-size: 0.9rem;
   }
 
-  .auth-form input,
-  .auth-form button {
+  .register-form input,
+  .register-form button {
     font-size: 0.9rem;
     padding: 10px;
   }
 
-  .auth-logo {
+  .form-logo {
     max-width: 160px;
     margin-bottom: 16px;
   }

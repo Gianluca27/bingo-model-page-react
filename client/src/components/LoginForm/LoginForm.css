@@ -15,7 +15,7 @@ html, body {
   align-items: center;
 }
 
-.auth-logo {
+.form-logo {
   width: 100%;
   max-width: 320px;
   margin-bottom: 24px;
@@ -27,7 +27,7 @@ html, body {
   position: relative;
   width: 90%;
   max-width: 400px;
-  padding: 30px 25px;
+  padding: 15px 15px;
   background-color: #ffffff;
   border-radius: 12px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
@@ -43,7 +43,7 @@ html, body {
 
 /* Título */
 .auth-form h2 {
-  margin-bottom: 24px;
+  margin-bottom: 15px;
   color: #333;
   font-size: 26px;
 }

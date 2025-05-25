@@ -28,7 +28,7 @@ const RegisterForm = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/register', {
+      const res = await fetch('/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,18 +54,21 @@ const RegisterForm = () => {
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <h2>Crear cuenta</h2>
-      <input name="nombre"     placeholder="Nombre"        value={formData.nombre} onChange={handleChange} required />
-      <input name="apellido"   placeholder="Apellido"      value={formData.apellido} onChange={handleChange} required />
-      <input name="dni"        placeholder="DNI"           value={formData.dni} onChange={handleChange} required />
-      <input name="usuario"    placeholder="Usuario"       value={formData.usuario} onChange={handleChange} required />
-      <input type="password" name="senia"    placeholder="Contraseña"   value={formData.senia} onChange={handleChange} required />
-      <input type="password" name="confirmar" placeholder="Confirmar contraseña" value={formData.confirmar} onChange={handleChange} required id="last-input"/>
-      {error && <p className="error">{error}</p>}
-      <button type="submit">Registrarse</button>
-      <p>¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link></p>
-    </form>
+    <div className="register-container">
+      <img src="/assets/images/bingomaniamia-logo.png" alt="Bingo Logo" className="form-logo" />
+      <form className="register-form" onSubmit={handleSubmit}>
+        <h2>Crear cuenta</h2>
+        <input name="nombre"     placeholder="Nombre"        value={formData.nombre} onChange={handleChange} required />
+        <input name="apellido"   placeholder="Apellido"      value={formData.apellido} onChange={handleChange} required />
+        <input name="dni"        placeholder="DNI"           value={formData.dni} onChange={handleChange} required />
+        <input name="usuario"    placeholder="Usuario"       value={formData.usuario} onChange={handleChange} required />
+        <input type="password" name="senia"    placeholder="Contraseña"   value={formData.senia} onChange={handleChange} required />
+        <input type="password" name="confirmar" placeholder="Confirmar contraseña" value={formData.confirmar} onChange={handleChange} required id="last-input"/>
+        {error && <p className="error">{error}</p>}
+        <button type="submit">Registrarse</button>
+        <p>¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link></p>
+      </form>
+    </div>
   );
 };
 

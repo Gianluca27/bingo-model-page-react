@@ -23,18 +23,18 @@ const App = () => {
           <Route path="/register" element={<RegisterForm />} />
           
           <Route
-            path="/game"
-            element={
-              <PrivateRoute>
-                <Game />
-              </PrivateRoute>
-            }
-          />
-          <Route
             path="/welcome"
             element={
               <PrivateRoute>
                 <WelcomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/game"
+            element={
+              <PrivateRoute>
+                <Game />
               </PrivateRoute>
             }
           />

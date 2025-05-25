@@ -23,6 +23,14 @@ const {
 // Middleware
 app.use(express.static('public'));
 app.use(express.json());
+
+const path = require('path');
+
+// Redirigir todas las rutas desconocidas al index.html de React
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'index.html'));
+});
+
 /////////////////////////////
 let timerEsperaActivo = null; // ✅ Define la variable en `server.js`
 /////////////////////////////  FE

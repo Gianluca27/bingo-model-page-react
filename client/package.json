@@ -21,6 +21,12 @@
       "react-app/jest"
     ]
   },
+  "scripts": {
+  "start": "react-scripts start",
+  "build": "react-scripts build",
+  "test": "react-scripts test",
+  "eject": "react-scripts eject"
+  },
   "browserslist": {
     "production": [
       ">0.2%",

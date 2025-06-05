@@ -1,11 +1,11 @@
 // src/components/EditCardModal/EditCardModal.jsx
-import React, { useState, useEffect } from 'react';
-import './EditCardModal.css';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import "./EditCardModal.css";
+import axios from "axios";
 
 const EditCardModal = ({ isOpen, onClose, onSave, cardData }) => {
-  const [usuario, setUsuario] = useState('');
-  const [numeroCarton, setNumeroCarton] = useState('');
+  const [usuario, setUsuario] = useState("");
+  const [numeroCarton, setNumeroCarton] = useState("");
 
   useEffect(() => {
     if (cardData) {
@@ -18,11 +18,11 @@ const EditCardModal = ({ isOpen, onClose, onSave, cardData }) => {
     try {
       await axios.put(`http://localhost:3001/admin/cartones/${cardData.id}`, {
         usuario,
-        numero_carton: numeroCarton
+        numero_carton: numeroCarton,
       });
       onSave();
     } catch (err) {
-      alert('Error al editar cartón');
+      alert("Error al editar cartón");
       console.error(err);
     }
   };
@@ -46,8 +46,12 @@ const EditCardModal = ({ isOpen, onClose, onSave, cardData }) => {
           onChange={(e) => setNumeroCarton(e.target.value)}
         />
         <div className="modal-buttons">
-          <button className="btn-success" onClick={handleGuardar}>Guardar</button>
-          <button className="btn-danger" onClick={onClose}>Cancelar</button>
+          <button className="btn-success" onClick={handleGuardar}>
+            Guardar
+          </button>
+          <button className="btn-danger" onClick={onClose}>
+            Cancelar
+          </button>
         </div>
       </div>
     </div>

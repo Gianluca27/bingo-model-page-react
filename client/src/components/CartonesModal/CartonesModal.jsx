@@ -1,6 +1,6 @@
 // src/components/CartonesModal/CartonesModal.jsx
-import React from 'react';
-import './CartonesModal.css';
+import React from "react";
+import "./CartonesModal.css";
 
 const CartonesModal = ({ isVisible, texto, onConfirm, onCancel }) => {
   if (!isVisible) return null;

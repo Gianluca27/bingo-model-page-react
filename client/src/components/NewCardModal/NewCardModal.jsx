@@ -1,32 +1,35 @@
-import React, { useState } from 'react';
-import './NewCardModal.css';
-import axios from 'axios';
+import React, { useState } from "react";
+import "./NewCardModal.css";
+import axios from "axios";
 
 const NewCardModal = ({ visible, onClose, onSuccess }) => {
-  const [usuario, setUsuario] = useState('');
-  const [idPartida, setIdPartida] = useState('');
-  const [numeroCarton, setNumeroCarton] = useState('');
-  const [error, setError] = useState('');
+  const [usuario, setUsuario] = useState("");
+  const [idPartida, setIdPartida] = useState("");
+  const [numeroCarton, setNumeroCarton] = useState("");
+  const [error, setError] = useState("");
 
   const handleCrear = async () => {
     if (!usuario || !idPartida || !numeroCarton) {
-      setError('Todos los campos son obligatorios.');
+      setError("Todos los campos son obligatorios.");
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/admin/cartones', {
-        usuario,
-        id_partida: idPartida,
-        numero_carton: numeroCarton,
-      });
+      const response = await axios.post(
+        "http://localhost:3001/admin/cartones",
+        {
+          usuario,
+          id_partida: idPartida,
+          numero_carton: numeroCarton,
+        }
+      );
 
       if (response.data.success) {
         onSuccess();
         onClose();
       }
     } catch (err) {
-      setError('Error al crear cartón.');
+      setError("Error al crear cartón.");
     }
   };
 
@@ -55,8 +58,12 @@ const NewCardModal = ({ visible, onClose, onSuccess }) => {
         />
         {error && <div className="modal-error">{error}</div>}
         <div className="modal-buttons">
-          <button onClick={handleCrear} className="btn-success">Crear</button>
-          <button onClick={onClose} className="btn-danger">Cancelar</button>
+          <button onClick={handleCrear} className="btn-success">
+            Crear
+          </button>
+          <button onClick={onClose} className="btn-danger">
+            Cancelar
+          </button>
         </div>
       </div>
     </div>

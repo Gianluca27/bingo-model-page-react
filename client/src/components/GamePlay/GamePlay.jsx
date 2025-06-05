@@ -1,56 +1,37 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import SocketContext from "../../services/SocketContext";
 import { useAuth } from "../../context/AuthContext";
-import PremioModal from "../PremioModal/PremioModal";
 import "./GamePlay.css";
+import { useNavigate } from "react-router-dom";
+import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
+import defaultImage from "../../assets/images/bolillas/default.png";
 
 const GamePlay = () => {
-  const socket = useContext(SocketContext);
   const { user } = useAuth();
-
+  const socket = useContext(SocketContext);
+  const navigate = useNavigate();
+  const [creditos, setCreditos] = useState(user?.creditos || 0);
+  const [cartones, setCartones] = useState([]);
   const [bolillaActual, setBolillaActual] = useState(null);
   const [contador, setContador] = useState(0);
-  const [cartones, setCartones] = useState([]);
-  const [creditos, setCreditos] = useState(0);
+  const [modalPremio, setModalPremio] = useState(null);
+  const [mensajeGlobal, setMensajeGlobal] = useState("");
   const [horaSorteo, setHoraSorteo] = useState("");
-  const [modalGanador, setModalGanador] = useState(null);
+  const bolillasMarcadasRef = useRef([]);
+  const [soundOn, setSoundOn] = useState(true);
+  const toggleSound = () => setSoundOn((prev) => !prev);
 
-  const reproducirAudio = (bolilla) => {
-    const audio = new Audio(`/assets/audio/bolillas/${bolilla}.mp3`);
-    audio.play().catch((err) => {
-      console.warn(
-        "🎵 No se pudo reproducir el audio de bolilla:",
-        bolilla,
-        err
-      );
-    });
+  const handleBack = () => {
+    navigate("/welcome");
   };
-
-  const marcarBolilla = (bolilla) => {
-    const celdas = document.querySelectorAll(`[data-valor='${bolilla}']`);
-    celdas.forEach((celda) => celda.classList.add("marcada"));
-  };
-
-  const mostrarModalGanador = (tipo, ganadores, monto) => {
-    setModalGanador({
-      tipo,
-      ganadores,
-      monto,
-    });
-  };
-
-  const cerrarModal = () => setModalGanador(null);
 
   useEffect(() => {
-    const nuevaBolillaHandler = (bolilla) => {
-      setBolillaActual(bolilla);
-      setContador((prev) => prev + 1);
-      marcarBolilla(bolilla);
-      reproducirAudio(bolilla);
-    };
+    if (!socket || !user?.username) return;
 
-    const recibirCartonesHandler = (nuevosCartones) => {
-      setCartones(nuevosCartones);
+    socket.emit("obtenerCartonesDisponibles");
+
+    const onRecibirCartones = (cartones) => {
+      setCartones(cartones);
     };
 
     const infoUsuarioHandler = ({ creditos, hora }) => {
@@ -58,97 +39,160 @@ const GamePlay = () => {
       setHoraSorteo(hora);
     };
 
-    const audioEventoHandler = (nombre) => {
-      const audio = new Audio(`/assets/audio/eventos/${nombre}.mp3`);
-      audio.play().catch((err) => {
-        console.warn(
-          "🎵 No se pudo reproducir el audio del evento:",
-          nombre,
-          err
-        );
+    const onNuevaBolilla = (bolilla) => {
+      setBolillaActual(bolilla);
+      setContador((prev) => prev + 1);
+      marcarBolilla(bolilla);
+    };
+
+    const marcarBolilla = (bolilla) => {
+      bolillasMarcadasRef.current.push(bolilla);
+      // ⚠️ SUGERENCIA: Mejor manejar esto con estado en cada cartón y recalcular, en vez de usar DOM manual
+      const celdas = document.querySelectorAll(".celda-carton");
+      celdas.forEach((celda) => {
+        if (parseInt(celda.textContent) === bolilla) {
+          celda.classList.add("marcada");
+        }
       });
     };
 
-    const ganadoresLineaHandler = (ganadores) => {
-      mostrarModalGanador("Línea", ganadores, "Premio Línea");
+    const mostrarModalGanador = (tipo, ganadores, monto) => {
+      setModalPremio({ tipo, ganadores, monto });
     };
 
-    const ganadoresBingoHandler = (ganadores) => {
-      mostrarModalGanador("Bingo", ganadores, "Premio Bingo");
+    const onGanadorLinea = ({ jugador, monto }) => {
+      mostrarModalGanador("Línea", [jugador], monto);
     };
 
-    const ganadoresAcumuladoHandler = (ganadores) => {
-      mostrarModalGanador("Bingo Acumulado", ganadores, "Premio Acumulado");
+    const onGanadorBingo = ({ jugador, monto }) => {
+      mostrarModalGanador("Bingo", [jugador], monto);
     };
 
-    socket.emit("obtenerCartonesDisponibles");
+    const onGanadorAcumulado = ({ jugador, monto }) => {
+      mostrarModalGanador("Acumulado", [jugador], monto);
+    };
 
-    socket.on("nuevaBolilla", nuevaBolillaHandler);
-    socket.on("recibirCartones", recibirCartonesHandler);
+    const audioEventoHandler = (nombre) => {
+      if (soundOn) {
+        const audio = new Audio(`/assets/audio/eventos/${nombre}.mp3`);
+        audio.play().catch((err) => {
+          console.warn(
+            "🎵 No se pudo reproducir el audio del evento:",
+            nombre,
+            err
+          );
+        });
+      }
+    };
+
     socket.on("infoUsuario", infoUsuarioHandler);
+    socket.on("recibirCartones", onRecibirCartones);
+    socket.on("nuevaBolilla", onNuevaBolilla);
+    socket.on("ganadorLinea", onGanadorLinea);
+    socket.on("ganadorBingo", onGanadorBingo);
+    socket.on("ganadorAcumulado", onGanadorAcumulado);
     socket.on("audio-evento", audioEventoHandler);
-    socket.on("ganadoresLinea", ganadoresLineaHandler);
-    socket.on("ganadoresBingo", ganadoresBingoHandler);
-    socket.on("ganadoresAcumulado", ganadoresAcumuladoHandler);
+    socket.on("mensaje-tiempo", setMensajeGlobal);
 
     return () => {
-      socket.off("nuevaBolilla", nuevaBolillaHandler);
-      socket.off("recibirCartones", recibirCartonesHandler);
       socket.off("infoUsuario", infoUsuarioHandler);
+      socket.off("recibirCartones", onRecibirCartones);
+      socket.off("nuevaBolilla", onNuevaBolilla);
+      socket.off("ganadorLinea", onGanadorLinea);
+      socket.off("ganadorBingo", onGanadorBingo);
+      socket.off("ganadorAcumulado", onGanadorAcumulado);
       socket.off("audio-evento", audioEventoHandler);
-      socket.off("ganadoresLinea", ganadoresLineaHandler);
-      socket.off("ganadoresBingo", ganadoresBingoHandler);
-      socket.off("ganadoresAcumulado", ganadoresAcumuladoHandler);
+      socket.off("mensaje-tiempo", setMensajeGlobal);
     };
-  }, [socket]);
+  }, [socket, user, soundOn]);
 
   return (
-    <div className="gameplay-container">
-      <div className="header">
-        <h2>¡Bienvenido {user.username}!</h2>
-        <p>Créditos: {creditos}</p>
-        <p>Hora del sorteo: {horaSorteo}</p>
-        <p>Bolas sorteadas: {contador}</p>
+    <div className="gameplay-wrapper">
+      <img src={bingoLogo} alt="Bingo Logo" className="logo" />
+      <div className="gameplay-container">
+        <div className="zona-principal">
+          <div className="zona-izquierda texto-item">
+            <p>
+              <strong>Tope de bolas:</strong> 39
+            </p>
+            <p>
+              <strong>Bolas sorteadas:</strong> {contador}
+            </p>
+            <p>
+              <strong>Acumulado:</strong> ----
+            </p>
+            <p>
+              <strong>Línea:</strong> ----
+            </p>
+            <p>
+              <strong>Bingo:</strong> ----
+            </p>
+          </div>
+          <div className="zona-centro">
+            <div className="bolilla-container">
+              <img
+                src={
+                  bolillaActual
+                    ? `../../assets/images/bolillas/${String(
+                        bolillaActual
+                      ).padStart(2, "0")}.jpg`
+                    : defaultImage
+                }
+                alt={`Bolilla ${bolillaActual}`}
+                className="bolilla-imagen"
+              />
+            </div>
+            <div className="mensaje-global">{mensajeGlobal}</div>
+          </div>
+
+          <div className="zona-derecha texto-item">
+            <p>
+              <strong>USTED TIENE CRÉDITOS:</strong> {creditos}
+            </p>
+            <p>
+              <strong>SORTEO DE LAS:</strong> {horaSorteo}
+            </p>
+            <p>
+              <strong>JUEGA CON CARTONES ANTERIORES</strong>
+            </p>
+            <div className="btn-group">
+              <button onClick={toggleSound}>
+                SONIDO: {soundOn ? "SI" : "NO"}
+              </button>
+              <button onClick={handleBack}>VOLVER</button>
+            </div>
+          </div>
+        </div>
+        <h2 className="aviso">YA COMIENZA</h2>
+
+        {modalPremio && (
+          <div className="modal-premio">
+            <div className="modal-contenido">
+              <h2>¡{modalPremio.tipo}!</h2>
+              <p>Ganadores: {modalPremio.ganadores.join(", ")}</p>
+              <p>Premio: ${modalPremio.monto}</p>
+              <button onClick={() => setModalPremio(null)}>Cerrar</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {bolillaActual && (
-        <div className="bolilla-actual">
-          <img
-            src={`/assets/images/bolillas/${bolillaActual}.png`}
-            alt={`Bolilla ${bolillaActual}`}
-          />
-        </div>
-      )}
-
-      <div className="cartones-container">
-        {cartones.map((carton, index) => (
-          <div key={index} className="carton">
-            {carton.map((numero, i) => (
+      <div className="zona-cartones">
+        {cartones.map((carton, idx) => (
+          <div key={idx} className="carton">
+            {carton.map((celda, i) => (
               <div
                 key={i}
-                className={`celda ${numero === 0 ? "vacio" : ""}`}
-                data-valor={numero}
+                className={`celda-carton ${
+                  bolillasMarcadasRef.current.includes(celda) ? "marcada" : ""
+                }`}
               >
-                {numero !== 0 ? numero : ""}
+                {celda !== 0 ? celda : ""}
               </div>
             ))}
           </div>
         ))}
       </div>
-
-      {modalGanador && (
-        <PremioModal onClose={cerrarModal}>
-          <h2>¡Ganador de {modalGanador.tipo}!</h2>
-          <p>Premio: {modalGanador.monto}</p>
-          <ul>
-            {modalGanador.ganadores.map((g, i) => (
-              <li key={i}>
-                🎉 {g.usuario} con cartón #{g.numeroCarton}
-              </li>
-            ))}
-          </ul>
-        </PremioModal>
-      )}
     </div>
   );
 };

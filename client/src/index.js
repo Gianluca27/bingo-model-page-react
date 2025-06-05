@@ -1,9 +1,14 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
+import socket from "./services/socket";
+import SocketContext from "./services/SocketContext";
 
-const container = document.getElementById('root');
-const root = createRoot(container);
-root.render(<App />);
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
-console.log("App loaded");
+root.render(
+  <SocketContext.Provider value={socket}>
+    <App />
+  </SocketContext.Provider>
+);

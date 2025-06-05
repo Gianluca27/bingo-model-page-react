@@ -1,21 +1,22 @@
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
   background-color: #0b0f50;
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .register-container {
-    display: flex;
+  display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.form-logo {
+.register-logo {
   width: 100%;
   max-width: 320px;
   margin-bottom: 24px;
@@ -35,7 +36,6 @@ html, body {
   align-items: center;
   box-sizing: border-box;
   font-size: 0.95rem;
-
   border: 5px dotted #ffa500;
   animation: blink-border 1.5s linear infinite;
 }
@@ -106,11 +106,21 @@ html, body {
 }
 
 @keyframes blink-border {
-  0% { border-color: #ffa500; }
-  25% { border-color: #ffd700; }
-  50% { border-color: #ff8c00; }
-  75% { border-color: #ffc107; }
-  100% { border-color: #ffa500; }
+  0% {
+    border-color: #ffa500;
+  }
+  25% {
+    border-color: #ffd700;
+  }
+  50% {
+    border-color: #ff8c00;
+  }
+  75% {
+    border-color: #ffc107;
+  }
+  100% {
+    border-color: #ffa500;
+  }
 }
 
 @media (max-height: 700px), (max-width: 400px) {
@@ -126,7 +136,7 @@ html, body {
     padding: 10px;
   }
 
-  .form-logo {
+  .register-logo {
     max-width: 160px;
     margin-bottom: 16px;
   }

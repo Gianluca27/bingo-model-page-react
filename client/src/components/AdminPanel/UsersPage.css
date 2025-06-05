@@ -8,7 +8,8 @@ table {
   margin-top: 1rem;
 }
 
-th, td {
+th,
+td {
   padding: 10px;
   text-align: center;
   border: 1px solid #ccc;
@@ -21,9 +22,20 @@ button {
   cursor: pointer;
 }
 
-.btn-primary { background: #0b0f50; color: #fff; }
-.btn-danger { background: #d32f2f; color: #fff; }
-.btn-success { background: #388e3c; color: #fff; }
+.btn-primary {
+  background: #0b0f50;
+  color: #fff;
+}
+
+.btn-danger {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.btn-success {
+  background: #388e3c;
+  color: #fff;
+}
 
 .form-container {
   margin-top: 20px;
@@ -32,7 +44,8 @@ button {
   border-radius: 8px;
 }
 
-.form-container input, .form-container select {
+.form-container input,
+.form-container select {
   display: block;
   width: 100%;
   padding: 10px;
@@ -43,4 +56,109 @@ button {
 .form-buttons {
   display: flex;
   justify-content: space-between;
+}
+
+.users-page {
+  padding: 2rem;
+  background: white;
+  color: #0b0f50;
+  font-family: "Poppins", sans-serif;
+  max-width: 1100px;
+  margin: auto;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
+.titulo-usuarios {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #0b0f50;
+  border-bottom: 2px solid #0b0f50;
+}
+
+.tabla-usuarios-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.tabla-usuarios-container th,
+.tabla-usuarios-container td {
+  color: #333;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+.tabla-usuarios-container th {
+  position: sticky;
+  top: 0;
+  background-color: #0b0f50;
+  color: white;
+}
+
+.btn-success {
+  background: #198754;
+  color: white;
+  padding: 8px 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  transition: background 0.3s;
+}
+
+.btn-success:hover {
+  background: #157347;
+}
+
+.busqueda-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.input-busqueda {
+  max-width: 80%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.select-filtro {
+  max-width: 20%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 20%;
+  max-width: 90%;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content input {
+  max-width: 90%;
 }

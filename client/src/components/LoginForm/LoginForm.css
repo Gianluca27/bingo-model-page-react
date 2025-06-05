@@ -1,12 +1,51 @@
-html, body {
+html,
+body {
+  width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   background-color: #0b0f50;
-  font-family: 'Poppins', sans-serif;
+  background-image: radial-gradient(
+      circle at center,
+      rgba(0, 0, 0, 0.6) 0%,
+      transparent 50%
+    ),
+    radial-gradient(circle at center, transparent 40%, rgba(0, 0, 0, 0.95) 100%),
+    radial-gradient(circle at 30% 70%, rgba(0, 0, 0, 0.5), transparent 60%),
+    radial-gradient(circle at 70% 30%, rgba(0, 0, 0, 0.5), transparent 60%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 255, 255, 0.01) 0px,
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  background-blend-mode: overlay, multiply, darken, darken, overlay, overlay;
+  font-family: "Poppins", sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  z-index: -1;
 }
 
 .login-container {
@@ -15,7 +54,7 @@ html, body {
   align-items: center;
 }
 
-.form-logo {
+.login-logo {
   width: 100%;
   max-width: 320px;
   margin-bottom: 24px;
@@ -41,14 +80,12 @@ html, body {
   animation: blink-border 1.5s linear infinite;
 }
 
-/* Título */
 .auth-form h2 {
   margin-bottom: 15px;
   color: #333;
   font-size: 26px;
 }
 
-/* Campos */
 .auth-form input {
   width: 90%;
   padding: 15px;
@@ -62,7 +99,6 @@ html, body {
   margin-bottom: 25px;
 }
 
-/* Botón */
 .auth-form button {
   width: 100%;
   padding: 14px;
@@ -81,14 +117,12 @@ html, body {
   background-color: #1565c0;
 }
 
-/* Texto debajo del botón */
 .auth-form p {
   font-size: 15px;
   color: #555;
   margin-top: 10px;
 }
 
-/* Enlace */
 .auth-form a {
   color: #1976d2;
   text-decoration: none;
@@ -99,11 +133,21 @@ html, body {
 }
 
 @keyframes blink-border {
-  0% { border-color: #ffa500; }
-  25% { border-color: #ffd700; }
-  50% { border-color: #ff8c00; }
-  75% { border-color: #ffc107; }
-  100% { border-color: #ffa500; }
+  0% {
+    border-color: #ffa500;
+  }
+  25% {
+    border-color: #ffd700;
+  }
+  50% {
+    border-color: #ff8c00;
+  }
+  75% {
+    border-color: #ffc107;
+  }
+  100% {
+    border-color: #ffa500;
+  }
 }
 
 @media (max-height: 700px), (max-width: 400px) {
@@ -119,7 +163,7 @@ html, body {
     padding: 10px;
   }
 
-  .auth-logo {
+  .login-logo {
     max-width: 160px;
     margin-bottom: 16px;
   }

@@ -8,7 +8,7 @@ import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
 
 const WelcomePage = () => {
   const socket = useContext(SocketContext);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [texto, setTexto] = useState("");
   const [hora, setHora] = useState("");
   const [premios, setPremios] = useState({});
@@ -63,7 +63,10 @@ const WelcomePage = () => {
     }
   }, [user, socket]);
 
-  const handleBack = () => navigate("/login");
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <section className="welcome-page">
@@ -135,7 +138,7 @@ const WelcomePage = () => {
           >
             A JUGAR!
           </button>
-          <button className="btn-exit" onClick={handleBack}>
+          <button className="btn-exit" onClick={handleLogout}>
             SALIR
           </button>
         </div>

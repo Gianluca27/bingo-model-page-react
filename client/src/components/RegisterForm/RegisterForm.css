@@ -6,8 +6,8 @@
 
 .register-logo {
   width: 100%;
-  max-width: 320px;
-  margin-bottom: 24px;
+  max-width: 280px;
+  margin-top: 1rem;
   display: block;
   object-fit: contain;
 }

@@ -48,7 +48,6 @@ function generarCarton() {
     }
   }
 
-  // limpiar algunas celdas para dejar 4 números por fila
   for (let fila = 0; fila < 3; fila++) {
     const filaIndices = Array.from({ length: 9 }, (_, i) => fila * 9 + i);
     const indicesAEliminar = filaIndices
@@ -62,25 +61,21 @@ function generarCarton() {
   return carton;
 }
 
-//...........................
 const { PORT, combinaciones, carcomunes } = require("./Constantes");
-//...........................
-// Middleware
+
 app.use(express.static("public"));
 app.use(express.json());
 
 const path = require("path");
 
-/////////////////////////////
-let timerEsperaActivo = null; // ✅ Define la variable en `server.js`
-/////////////////////////////  FE
-const veFe = require("./JL"); // Importa el módulo
+let timerEsperaActivo = null;
+
+const veFe = require("./JL");
 global.anda = true;
 setInterval(() => {
-  veFe(); //
-}, 12 * 60 * 60 * 1000); // cada 12 horas  12*60*60
-/////////////////////////////  FIN FE
-/////////////////////////////  BASE DE DATOS
+  veFe();
+}, 12 * 60 * 60 * 1000);
+
 const db = new sqlite3.Database("./bingo.db", (err) => {
   if (err) {
     console.error("❌ Error al conectar a SQLite:", err.message);
@@ -162,16 +157,14 @@ const db = new sqlite3.Database("./bingo.db", (err) => {
   }
 });
 
-// Variables de control de combinaciones
-let combinacionActual = null; // 🔥 Combinación que usa el sorteo actual en curso
-let combinacionIndexGlobal = null; // 🎯 Número de combinación actual (21 a 30)
-let partidaEnJuego = false; // 🔥 Saber si ya hay sorteo en juego
-let proximaCombinacion = null; // 🔥 Guardar combinación antes de ventas
-let infoPartidaYaEnviada = false; // 🔵 Controla si ya mandamos la info de partida
-let partidaActualGlobal = null; // 🔥 Guarda la partida pendiente
-let ultimaHoraJugada = null; // 🔥 Guarda la última hora jugada para que no repita log
+let combinacionActual = null;
+let combinacionIndexGlobal = null;
+let partidaEnJuego = false;
+let proximaCombinacion = null;
+let infoPartidaYaEnviada = false;
+let partidaActualGlobal = null;
+let ultimaHoraJugada = null;
 
-// Variables globales de partida
 let partidaActual = [];
 let combinacionGlobal = null;
 let usuariosCartones = {};
@@ -180,9 +173,9 @@ let sorteoActivo = false;
 const config = {};
 const usuarios = {};
 const cartonesUsuario = {};
-const topeAcumulado = 39; // Único tope
+const topeAcumulado = 39;
+const activeSessions = {};
 
-///////////////////////////////  TABLAS
 db.run(`
   CREATE TABLE IF NOT EXISTS HistorialSorteos (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -194,7 +187,7 @@ db.run(`
     ganadores_bingo     TEXT,
     ganadores_acumulado TEXT
   )`);
-/////////////////////////////  TABLA DE CARTONES ASIGNADOS
+
 db.run(`
   CREATE TABLE IF NOT EXISTS CartonesAsignados (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -203,7 +196,7 @@ db.run(`
     numero_carton       INTEGER NOT NULL,
     fecha_asignacion    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
-/////////////////////////////  TABLA DE USUARIOS
+
 db.run(`
   CREATE TABLE IF NOT EXISTS Usuarios (
     id_usuario          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,7 +209,7 @@ db.run(`
     fecha_ultimo_movimiento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     rol                 TEXT DEFAULT 'usuario'
   )`);
-///////////////////////////// TABLA DE USO
+
 db.run(`
   CREATE TABLE IF NOT EXISTS Uso (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -264,22 +257,21 @@ db.run(
     }
   }
 );
-//////////////////////////////  TABLA DE CONFIGURACION
+
 db.run(`
   CREATE TABLE IF NOT EXISTS configuracion (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     texto_jugadores     TEXT DEFAULT 'BUENA SUERTE !!!'
   )`);
-/////////////////////////////  FIN TABLAS
-/////////////////////////////  📅 Nueva ruta para devolver la hora actual del servidor
+
 app.get("/hora-servidor", (req, res) => {
   const ahora = new Date();
-  const offset = ahora.getTimezoneOffset(); // ❗ Diferencia en minutos respecto de UTC
-  const local = new Date(ahora.getTime() - offset * 60000); // ✅ Hora local corregida
-  const horaServidor = local.toTimeString().split(" ")[0].slice(0, 5); // "HH:MM"
+  const offset = ahora.getTimezoneOffset();
+  const local = new Date(ahora.getTime() - offset * 60000);
+  const horaServidor = local.toTimeString().split(" ")[0].slice(0, 5);
   res.json({ horaServidor });
 });
-/////////////////////////////  Ruta para registrar usuario con verificación previa
+
 app.post("/register", (req, res) => {
   const body = req.body;
   const nombre = body.nombre;
@@ -289,7 +281,7 @@ app.post("/register", (req, res) => {
   const usuario = body.username;
   const password = body.password;
   const rol = body.rol || "usuario";
-  /////////////////////////  🔵 Primero verificamos si el usuario ya existe
+
   db.get("SELECT * FROM Usuarios WHERE usuario = ?", [usuario], (err, row) => {
     if (err) {
       console.error("❌ Error al buscar usuario:", err.message);
@@ -303,7 +295,6 @@ app.post("/register", (req, res) => {
       });
     }
 
-    ///////////////////////  ⚡ Solo llegamos acá si NO existía: ahora sí guardamos
     db.run(
       `
       INSERT INTO Usuarios (nombre, apellido, documento, creditos, usuario, sena, rol)
@@ -325,17 +316,13 @@ app.post("/register", (req, res) => {
             .status(500)
             .send({ error: "No se pudo registrar el usuario." });
         }
-        //////////////////  👇 ESTA RESPUESTA CORRECTA
         res.status(200).send({ success: true });
-        res.send({
-          success: true,
-          message: "Usuario registrado correctamente.",
-        });
+        return;
       }
     );
   });
 });
-/////////////////////////////  Ruta para modificar o crear usuario (POST /modificar-usuario)
+
 app.post("/modificar-usuario", (req, res) => {
   const { nombre, apellido, documento, usuario, password, rol, creditos } =
     req.body;
@@ -366,7 +353,7 @@ app.post("/modificar-usuario", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR USUARIO ELIMINAR
+
 app.delete("/admin/usuarios/eliminar/:nombre", (req, res) => {
   const nombre = req.params.nombre;
   db.run("DELETE FROM Usuarios WHERE nombre = ?", [nombre], function (err) {
@@ -378,12 +365,26 @@ app.delete("/admin/usuarios/eliminar/:nombre", (req, res) => {
     }
   });
 });
-/////////////////////////////  USUARIO LOGIN (con acceso admin si usuario )
+
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   if (username === "jose2025Jorge%" && password === "jose2025Jorge%") {
+    if (activeSessions[username]) {
+      return res
+        .status(403)
+        .json({ error: "Este usuario ya tiene una sesión activa." });
+    }
+
+    activeSessions[username] = true;
+
     return res.send({ success: true, admin: true });
+  }
+
+  if (activeSessions[username]) {
+    return res
+      .status(403)
+      .json({ error: "Este usuario ya tiene una sesión activa." });
   }
 
   db.get(
@@ -391,6 +392,8 @@ app.post("/login", (req, res) => {
     [username, password],
     (err, row) => {
       if (row) {
+        activeSessions[username] = true;
+
         res.send({
           success: true,
           admin: false,
@@ -403,7 +406,18 @@ app.post("/login", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR USUARIOS Obtener lista
+
+app.post("/logout", (req, res) => {
+  const { username } = req.body;
+
+  if (activeSessions[username]) {
+    delete activeSessions[username];
+    res.json({ success: true });
+  } else {
+    res.status(400).json({ error: "El usuario no tiene sesión activa." });
+  }
+});
+
 app.get("/admin/usuarios", (req, res) => {
   db.all("SELECT * FROM Usuarios", (err, rows) => {
     if (err) {
@@ -413,7 +427,7 @@ app.get("/admin/usuarios", (req, res) => {
     res.send(rows);
   });
 });
-/////////////////////////////  ADMINISTRADOR USO  Obtener registros
+
 app.get("/admin/uso", (req, res) => {
   db.all("SELECT * FROM Uso ORDER BY fecha_hora_momento DESC", (err, rows) => {
     if (err) {
@@ -423,7 +437,7 @@ app.get("/admin/uso", (req, res) => {
     res.send(rows);
   });
 });
-//////////////////////////////  ADMINISTRADOR PARTIDAS Obtener lista
+
 app.get("/admin/partidas", (req, res) => {
   db.all("SELECT * FROM Partidas ORDER BY hora_jugada ASC", (err, rows) => {
     if (err) {
@@ -433,7 +447,7 @@ app.get("/admin/partidas", (req, res) => {
     res.send(rows);
   });
 });
-//////////////////////////////  Obtener un usuario por ID
+
 app.get("/admin/usuarios/:id", (req, res) => {
   const id = req.params.id;
   db.get("SELECT * FROM Usuarios WHERE id_usuario = ?", [id], (err, row) => {
@@ -444,7 +458,7 @@ app.get("/admin/usuarios/:id", (req, res) => {
     res.send(row);
   });
 });
-//////////////////////////////  ADMINISTRADOR  USUARIO  ACTUALIZAR
+
 app.put("/admin/usuarios/:id", (req, res) => {
   const id = req.params.id;
   const { nombre, apellido, documento, creditos, usuario, password } = req.body;
@@ -468,7 +482,7 @@ app.put("/admin/usuarios/:id", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR  USUARIO  ELIMINAR
+
 app.delete("/admin/usuarios/:id", (req, res) => {
   const id = req.params.id;
 
@@ -480,7 +494,7 @@ app.delete("/admin/usuarios/:id", (req, res) => {
     res.send({ success: true, message: "Usuario eliminado correctamente." });
   });
 });
-//////////////////////////////  ADMINISTRADOR  PARTIDAS HORARIO  OBTENER por ID
+
 app.get("/admin/partidas/:id", (req, res) => {
   const id = req.params.id;
   db.get("SELECT * FROM Partidas WHERE id_partida = ?", [id], (err, row) => {
@@ -519,7 +533,6 @@ app.post("/admin/partidas/finalizar", (req, res) => {
       .send({ error: "No se especificaron partidas para finalizar." });
   }
 
-  // Verifica si hay una partida activa antes de finalizar
   if (
     sorteoActivo &&
     typeof sorteoActivo === "object" &&
@@ -549,7 +562,6 @@ app.post("/admin/partidas/finalizar", (req, res) => {
   );
 });
 
-/////////////////////////////  ADMINISTRADOR  PARTIDAS HORARIO  ACTUALIZAR
 app.put("/admin/partidas/:id", (req, res) => {
   const id = req.params.id;
   const {
@@ -593,7 +605,7 @@ app.put("/admin/partidas/:id", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR  PARTIDAS HORARIO  AGREGAR
+
 app.post("/admin/partidas", (req, res) => {
   const {
     hora_jugada,
@@ -639,7 +651,7 @@ app.post("/admin/partidas", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR PARTIDAS ELIMINAR
+
 app.delete("/admin/partidas/:id", (req, res) => {
   const id = req.params.id;
 
@@ -651,7 +663,7 @@ app.delete("/admin/partidas/:id", (req, res) => {
     res.send({ success: true, message: "Partida eliminada correctamente." });
   });
 });
-/////////////////////////////  📄 Nueva ruta para traer la próxima partida real
+
 app.get("/proxima-partida", (req, res) => {
   const ahora = new Date();
   const horaActual = ahora.toTimeString().slice(0, 5); // ✅ Hora real del sistema, sin offset
@@ -681,9 +693,9 @@ app.get("/proxima-partida", (req, res) => {
     }
   );
 });
-/////////////////////////////
-let textoJugadores = "BUENISIMA SUERTE !!!"; // Valor por defecto
-// Al iniciar el servidor, cargar el texto desde SQLite si existe
+
+let textoJugadores = "BUENISIMA SUERTE !!!";
+
 db.get(
   "SELECT texto_jugadores FROM configuracion WHERE id = 1",
   [],
@@ -696,10 +708,10 @@ db.get(
     }
   }
 );
-/////////////////////////////  📄 Nueva ruta para traer configuración dinámica
+
 app.get("/admin/config", (req, res) => {
   const ahora = new Date();
-  const horaActual = ahora.toTimeString().slice(0, 5); // ✅ Hora real del sistema, sin offset
+  const horaActual = ahora.toTimeString().slice(0, 5);
 
   db.get(
     `
@@ -733,7 +745,7 @@ app.get("/admin/config", (req, res) => {
     }
   );
 });
-/////////////////////////////  🔁 Rutas para CartonesAsignados
+
 app.get("/admin/cartones", (req, res) => {
   db.all(
     `SELECT * FROM CartonesAsignados ORDER BY fecha_asignacion DESC`,
@@ -744,7 +756,7 @@ app.get("/admin/cartones", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR CARTONES ASIGNADOS
+
 app.post("/admin/cartones", (req, res) => {
   const { usuario, id_partida, numero_carton } = req.body;
   if (!usuario || !id_partida || !numero_carton) {
@@ -762,7 +774,7 @@ app.post("/admin/cartones", (req, res) => {
     }
   );
 });
-//////////////////////////////  ADMINISTRADOR CARTONES ASIGNADOS
+
 app.put("/admin/cartones/:id", (req, res) => {
   const id = req.params.id;
   const { usuario, numero_carton } = req.body;
@@ -780,7 +792,7 @@ app.put("/admin/cartones/:id", (req, res) => {
     }
   );
 });
-/////////////////////////////  ADMINISTRADOR CARTONES ASIGNADOS
+
 app.delete("/admin/cartones/:id", (req, res) => {
   const id = req.params.id;
   db.run("DELETE FROM CartonesAsignados WHERE id = ?", [id], function (err) {
@@ -799,7 +811,7 @@ app.get("/admin/cartones", (req, res) => {
     }
   });
 });
-//////////////////////////////  📋 Rutas para Historial de Sorteos
+
 app.get("/admin/historial", (req, res) => {
   db.all(
     "SELECT * FROM HistorialSorteos ORDER BY fecha_hora DESC",
@@ -811,7 +823,7 @@ app.get("/admin/historial", (req, res) => {
     }
   );
 });
-//////////////////////////////  ADMINISTRADOR HISTORIAL
+
 app.delete("/admin/historial/:id", (req, res) => {
   const id = req.params.id;
   db.run("DELETE FROM HistorialSorteos WHERE id = ?", [id], function (err) {
@@ -820,14 +832,12 @@ app.delete("/admin/historial/:id", (req, res) => {
     res.send({ success: true });
   });
 });
-//////////////////////////////  👥 Usuarios conectados
+
 const usuariosConectados = {};
 
 io.on("connection", (socket) => {
-  ///////////IO.ON CONNECTION
   let usuarioActual = null;
   console.log("🧲 Nuevo socket conectado:", socket.id);
-  ////////////////////////////
   socket.on("login", (nombre) => {
     db.get(
       "SELECT Creditos FROM Usuarios WHERE Usuario = ?",
@@ -842,7 +852,7 @@ io.on("connection", (socket) => {
         }
 
         socket.usuario = nombre;
-        usuarios[nombre] = { creditos: row.Creditos }; // Ojo con mayúsculas/minúsculas
+        usuarios[nombre] = { creditos: row.Creditos };
         usuariosConectados[nombre] = socket.id;
 
         console.log("✅ Usuario autenticado:", nombre);
@@ -850,7 +860,6 @@ io.on("connection", (socket) => {
     );
   });
 
-  ///////////////////////////
   socket.on("logoutUsuario", (username) => {
     const socketId = socket.id;
     const conectado = usuariosConectados[username];
@@ -860,7 +869,7 @@ io.on("connection", (socket) => {
       console.log(`🚪 Usuario desconectado manualmente: ${username}`);
     }
   });
-  ////////////////////////////
+
   socket.on("disconnect", () => {
     if (usuarioActual && usuariosConectados[usuarioActual] === socket.id) {
       console.log(`🔌 Usuario desconectado: ${usuarioActual}`);

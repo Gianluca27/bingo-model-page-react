@@ -34,91 +34,74 @@ const App = () => {
               </PrivateRoute>
             }
           />
-          <Route path="/gameplay" element={<GamePlay />} />
-          <Route path="/admin/panel" element={<AdminPanel />} />
-          <Route path="/admin/gamespage" element={<GamesPage />} />
-          <Route path="/admin/users" element={<UsersPage />} />
-          <Route path="/admin/config" element={<ConfigPage />} />
-          <Route path="/admin/logs" element={<LogsPage />} />
-          <Route path="/admin/cards" element={<CardsPage />} />
-          <Route path="/admin/history" element={<HistoryPage />} />
+          <Route
+            path="/gameplay"
+            element={
+              <PrivateRoute>
+                <GamePlay />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/panel"
+            element={
+              <PrivateRoute>
+                <AdminPanel />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <PrivateRoute>
+                <UsersPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/games"
+            element={
+              <PrivateRoute>
+                <GamesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/config"
+            element={
+              <PrivateRoute>
+                <ConfigPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/logs"
+            element={
+              <PrivateRoute>
+                <LogsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/cards"
+            element={
+              <PrivateRoute>
+                <CardsPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/history"
+            element={
+              <PrivateRoute>
+                <HistoryPage />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>
   );
 };
-
-// const App = () => {
-//   return (
-//     <AuthProvider>
-//       <SocketContext.Provider value={socket}>
-//       <Router>
-//         <Routes>
-//           <Route path="/" element={<Navigate to="/login" replace />} />
-//           <Route path="/login" element={<LoginForm />} />
-//           <Route path="/register" element={<RegisterForm />} />
-//           <Route path="/welcome" element={<WelcomePage />} />
-//           <Route
-//             path="/game"
-//             element={
-//               <PrivateRoute>
-//                 <Game />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/users"
-//             element={
-//               <PrivateRoute>
-//                 <UsersPage />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/games"
-//             element={
-//               <PrivateRoute>
-//                 <GamesPage />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/config"
-//             element={
-//               <PrivateRoute>
-//                 <ConfigPage />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/logs"
-//             element={
-//               <PrivateRoute>
-//                 <LogsPage />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/cards"
-//             element={
-//               <PrivateRoute>
-//                 <CardsPage />
-//               </PrivateRoute>
-//             }
-//           />
-//           <Route
-//             path="/admin/history"
-//             element={
-//               <PrivateRoute>
-//                 <HistoryPage />
-//               </PrivateRoute>
-//             }
-//           />
-//         </Routes>
-//       </Router>
-//       </SocketContext.Provider>
-//     </AuthProvider>
-//   );
-// };
 
 export default App;

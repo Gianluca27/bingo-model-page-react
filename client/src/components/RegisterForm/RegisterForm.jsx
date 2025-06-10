@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./RegisterForm.css";
 import { useAuth } from "../../context/AuthContext";
+import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
 
 const RegisterForm = () => {
   const { login } = useAuth();
@@ -24,7 +25,9 @@ const RegisterForm = () => {
     e.preventDefault();
     setError("");
 
-    if (formData.senia !== formData.confirmar) {
+    const { nombre, apellido, dni, usuario, senia, confirmar } = formData;
+
+    if (senia !== confirmar) {
       setError("Las contraseñas no coinciden");
       return;
     }
@@ -36,24 +39,21 @@ const RegisterForm = () => {
         body: JSON.stringify({
           nombre,
           apellido,
-          documento,
-          creditos,
+          documento: dni,
           username: usuario,
-          password,
-          rol,
+          password: senia,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        // 🔁 Realiza login automático después de registrarse
         const loginRes = await fetch("http://localhost:3001/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             username: usuario,
-            password,
+            password: senia,
           }),
         });
 
@@ -78,70 +78,66 @@ const RegisterForm = () => {
       console.error("Error en el registro:", err);
       setError("No se pudo conectar con el servidor");
     }
-
-    return (
-      <div className="register-container">
-        <img
-          src="/assets/images/bingomaniamia-logo.png"
-          alt="Bingo Logo"
-          className="register-logo"
-        />
-        <form className="register-form" onSubmit={handleSubmit}>
-          <h2>Crear cuenta</h2>
-          <input
-            name="nombre"
-            placeholder="Nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            required
-          />
-          <input
-            name="apellido"
-            placeholder="Apellido"
-            value={formData.apellido}
-            onChange={handleChange}
-            required
-          />
-          <input
-            name="dni"
-            placeholder="DNI"
-            value={formData.dni}
-            onChange={handleChange}
-            required
-          />
-          <input
-            name="usuario"
-            placeholder="Usuario"
-            value={formData.usuario}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="senia"
-            placeholder="Contraseña"
-            value={formData.senia}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="confirmar"
-            placeholder="Confirmar contraseña"
-            value={formData.confirmar}
-            onChange={handleChange}
-            required
-            id="last-input"
-          />
-          {error && <p className="error">{error}</p>}
-          <button type="submit">Registrarse</button>
-          <p>
-            ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
-          </p>
-        </form>
-      </div>
-    );
   };
+
+  return (
+    <div className="register-container">
+      <img src={bingoLogo} alt="Bingo Logo" className="register-logo" />
+      <form className="register-form" onSubmit={handleSubmit}>
+        <h2>Crear cuenta</h2>
+        <input
+          name="nombre"
+          placeholder="Nombre"
+          value={formData.nombre}
+          onChange={handleChange}
+          required
+        />
+        <input
+          name="apellido"
+          placeholder="Apellido"
+          value={formData.apellido}
+          onChange={handleChange}
+          required
+        />
+        <input
+          name="dni"
+          placeholder="DNI"
+          value={formData.dni}
+          onChange={handleChange}
+          required
+        />
+        <input
+          name="usuario"
+          placeholder="Usuario"
+          value={formData.usuario}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="password"
+          name="senia"
+          placeholder="Contraseña"
+          value={formData.senia}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="password"
+          name="confirmar"
+          placeholder="Confirmar contraseña"
+          value={formData.confirmar}
+          onChange={handleChange}
+          required
+          id="last-input"
+        />
+        {error && <p className="error">{error}</p>}
+        <button type="submit">Registrarse</button>
+        <p>
+          ¿Ya tenés cuenta? <Link to="/login">Iniciá sesión</Link>
+        </p>
+      </form>
+    </div>
+  );
 };
 
 export default RegisterForm;

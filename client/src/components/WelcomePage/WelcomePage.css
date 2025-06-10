@@ -1,3 +1,5 @@
+/* src/pages/WelcomePage.css */
+
 body,
 html {
   height: 100%;
@@ -6,29 +8,17 @@ html {
   overflow-y: auto;
 }
 
-.welco {
-  padding: 1rem 1rem 2rem;
+.welcome-page {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-sizing: border-box;
-}
-
-.welcome-page {
-  display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background-color: #0b0f50;
-  padding: 1rem;
   box-sizing: border-box;
 }
 
 .form-logo {
-  display: block;
-  max-width: 280px;
-  height: auto;
+  max-width: 230px;
 }
 
 .welcome-container {
@@ -59,16 +49,23 @@ html {
   font-weight: 900;
 }
 
+.username {
+  color: #0b0f50;
+}
+
 .info-recuadro h2 {
-  width: 80%;
+  width: 90%;
   font-size: 1.5rem;
-  margin: 5px 0;
+  margin: 0.4rem 0;
   color: #0b0f50;
   border-bottom: #0b0f50 solid 1px;
 }
 
-.welcome-container h2,
-h3 {
+.values {
+  color: #ff9900;
+}
+
+.welcome-container h3 {
   margin: 0;
 }
 
@@ -79,20 +76,38 @@ h3 {
   animation: blink 1s infinite alternate;
 }
 
-.btn-group {
+.welco-btn-group {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
+  min-width: 100%;
   gap: 10px;
   margin-top: 1rem;
 }
 
-.btn-group button {
-  flex: 1;
-  min-width: 120px;
-  padding: 12px 20px;
+.welco-btn-group .btn-play {
+  background-color: rgb(252, 252, 35);
+  color: black;
+  width: 49%;
+}
+
+.welco-btn-group .btn-exit {
+  background-color: #fd5151;
+  color: black;
+  width: 49%;
+}
+
+.welco-btn-group .btn {
   background: linear-gradient(to bottom, #1e3c72, #2a5298);
   color: white;
+  width: 32%;
+}
+
+.welco-btn-group button {
+  flex: none;
+  max-width: 300px;
+  padding: 12px 20px;
+  margin: 1px 0;
   text-align: center;
   border: none;
   border-radius: 8px;
@@ -102,15 +117,15 @@ h3 {
   transition: all 0.2s ease-in-out;
 }
 
-.btn-group button:hover {
+.welco-btn-group button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px #00000070;
 }
 
 select#cantidad-cartones {
   padding: 10px;
-  margin: 1rem auto;
-  width: 80%;
+  margin: 0.3rem auto;
+  width: 30%;
   border-radius: 8px;
   border: 1px solid #ccc;
   display: block;
@@ -126,30 +141,17 @@ select#cantidad-cartones {
   }
 }
 
-@media (max-width: 768px) {
-  .form-logo {
-    max-width: 250px;
-    margin: 1.8rem 0 0;
-  }
-}
-
-@media (max-height: 900px) {
+@media (max-width: 565px) {
   .welcome-container {
-    margin-top: 7rem;
-    padding-top: 0;
+    width: 95%;
+    max-width: 550px;
   }
 
-  .form-logo {
-    display: none;
-  }
-
-  .info-recuadro h1 {
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-  }
-
-  .info-recuadro h2 {
-    width: 100%;
-    margin: 0;
+  .welco-btn-group .btn,
+  .welco-btn-group .btn-play,
+  .welco-btn-group .btn-exit {
+    margin: 0 auto;
+    width: 80%;
+    max-width: 100%;
   }
 }

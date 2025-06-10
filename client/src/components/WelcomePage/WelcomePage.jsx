@@ -1,3 +1,4 @@
+// src/pages/WelcomePage.jsx
 import React, { useEffect, useState, useContext } from "react";
 import "./WelcomePage.css";
 import { useNavigate } from "react-router-dom";
@@ -43,62 +44,68 @@ const WelcomePage = () => {
   }, []);
 
   useEffect(() => {
-    const handler = (mensaje) => {
-      setMensajeGlobal(mensaje);
-    };
-
+    const handler = (mensaje) => setMensajeGlobal(mensaje);
     socket.on("mensaje-tiempo", handler);
+    return () => socket.off("mensaje-tiempo", handler);
+  }, [socket]);
 
-    return () => {
-      socket.off("mensaje-tiempo", handler);
-    };
-  }, []);
   useEffect(() => {
     const handleConnect = () => {
-      console.log("🟢 Socket conectado con ID:", socket.id);
-      if (user?.username) {
-        console.log("🔁 Emitiendo login al reconectar:", user.username);
-        socket.emit("login", user.username);
-      }
+      if (user?.username) socket.emit("login", user.username);
     };
     socket.on("connect", handleConnect);
-
-    return () => {
-      socket.off("connect", handleConnect);
-    };
+    return () => socket.off("connect", handleConnect);
   }, [socket, user]);
 
   useEffect(() => {
     if (user?.username && socket?.connected) {
-      console.log("🔁 Emitiendo login con:", user.username);
       socket.emit("login", user.username);
     }
-  }, [user, socket?.connected]);
-  const handleBack = () => {
-    navigate("/login");
-  };
+  }, [user, socket]);
+
+  const handleBack = () => navigate("/login");
 
   return (
-    <section className="welco">
+    <section className="welcome-page">
       <img src={bingoLogo} alt="Bingo Logo" className="form-logo" />
       <div className="welcome-container">
         <div className="mensaje-global">{mensajeGlobal}</div>
         <div className="info-recuadro">
           <h1>
-            Bienvenido {user?.username ? `${user.username} a ` : ""}
-            BINGOManiaMia!
+            Bienvenido{" "}
+            <span className="username">
+              {user?.username ? `${user.username} ` : ""}
+            </span>
+            a BINGOManiaMia!
           </h1>
           {user?.creditos !== undefined && (
-            <h2>CRÉDITOS DISPONIBLES: ${user.creditos}</h2>
+            <h2>
+              CRÉDITOS DISPONIBLES:{" "}
+              <span className="values">${user.creditos}</span>
+            </h2>
           )}
-          <h2>FECHA DEL PRÓXIMO SORTEO: {hora}HS</h2>
-          <h2>VALOR DEL CARTÓN: ${premios.valorCarton}</h2>
-          <h2>PREMIO DE LÍNEA: ${premios.premioLinea}</h2>
-          <h2>PREMIO DE BINGO: ${premios.premioBingo}</h2>
-          <h2>PREMIO ACUMULADO: ${premios.premioAcumulado}</h2>
+          <h2>
+            FECHA DEL PRÓXIMO SORTEO: <span className="values">{hora}HS</span>
+          </h2>
+          <h2>
+            VALOR DEL CARTÓN:{" "}
+            <span className="values">${premios.valorCarton}</span>
+          </h2>
+          <h2>
+            PREMIO DE LÍNEA:{" "}
+            <span className="values">${premios.premioLinea}</span>
+          </h2>
+          <h2>
+            PREMIO DE BINGO:{" "}
+            <span className="values">${premios.premioBingo}</span>
+          </h2>
+          <h2>
+            PREMIO ACUMULADO:{" "}
+            <span className="values">${premios.premioAcumulado}</span>
+          </h2>
         </div>
         <h2>{texto}</h2>
-        <h3>ELEGÍ LA CANTIDAD DE CARTONES</h3>
+        <h3>ELEGÍ LA CANTIDAD DE CARTONES:</h3>
         <select
           id="cantidad-cartones"
           value={cantidadCartones}
@@ -110,11 +117,12 @@ const WelcomePage = () => {
             </option>
           ))}
         </select>
-        <div className="btn-group">
-          <button>REGLAS</button>
-          <button>CRÉDITOS</button>
-          <button>COBRAR</button>
+        <div className="welco-btn-group">
+          <button className="btn">REGLAS</button>
+          <button className="btn">CRÉDITOS</button>
+          <button className="btn">COBRAR</button>
           <button
+            className="btn-play"
             onClick={() => {
               socket.emit("comprarCartones", cantidadCartones, (respuesta) => {
                 if (respuesta.ok) {
@@ -127,7 +135,9 @@ const WelcomePage = () => {
           >
             A JUGAR!
           </button>
-          <button onClick={handleBack}>SALIR</button>
+          <button className="btn-exit" onClick={handleBack}>
+            SALIR
+          </button>
         </div>
       </div>
     </section>

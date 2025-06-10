@@ -1,26 +1,21 @@
-body,
-html {
+html,
+body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100%;
   background-color: #0e0e3f;
-}
-
-.logo {
-  display: block;
-  margin: 1rem 0 0;
-  padding: 0;
-  max-width: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .gameplay-wrapper {
-  margin-top: 0;
-  padding-top: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
   box-sizing: border-box;
+  min-width: 100%;
+  margin-bottom: 0.5rem;
 }
 
 .gameplay-container {
@@ -29,20 +24,33 @@ html {
   border: 5px dotted #ffcc00;
   animation: blink-border 1.5s linear infinite;
   padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-width: 90%;
+  width: 70%;
+  color: white;
+  box-sizing: border-box;
+}
+
+.logo {
+  display: block;
   margin-left: auto;
   margin-right: auto;
-  color: white;
+  padding: 0;
+  max-width: 250px;
+  width: 90%;
+  height: auto;
 }
 
 .zona-principal {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.zona-principal p {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
 }
 
 .zona-izquierda,
@@ -52,79 +60,77 @@ html {
   padding: 1rem;
   border-radius: 10px;
   flex: 1;
-  min-width: 250px;
+  min-width: 257px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-}
-
-.zona-centro {
+  text-align: center;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-}
-
-.numero.grande {
-  font-size: 2rem;
-  font-weight: bold;
-  background: black;
-  padding: 1rem;
-  margin: 1rem auto;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.aviso {
-  background-color: yellow;
-  color: black;
-  margin: 0;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-size: 2rem;
-  text-align: center;
-  display: inline-block;
-}
-
-.zona-cartones {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.carton {
-  background: #000;
-  padding: 0.5rem;
-  margin: 0.5rem;
-  border-radius: 8px;
-  color: white;
-  text-align: center;
-  display: grid;
-  grid-template-columns: repeat(9, 1fr);
-  grid-template-rows: repeat(3, auto);
-  gap: 3px;
-}
-
-.celda-carton {
-  background-color: #333;
-  border: 1px solid #999;
-  padding: 0.5rem;
-  border-radius: 5px;
-  font-weight: bold;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.celda-carton.marcado {
-  background-color: green;
-  color: white;
 }
 
 .zona-izquierda,
-.zona-centro,
+.zona-centro {
+  justify-content: center;
+}
+
+.zona-izquierda {
+  min-height: 358px;
+}
+
 .zona-derecha {
-  text-align: center;
+  padding: 0.5rem;
+  min-width: 310px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.bolilla-grid-wrapper {
+  width: 100%;
+  min-width: 300px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.bolilla-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  padding: 5px;
+  background-color: rgb(99, 110, 126);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.celda-bolilla {
+  background-color: #000000;
+  color: white;
+  font-weight: bold;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  box-sizing: border-box;
+  font-size: 0.85rem;
+}
+
+.celda-bolilla.marcada {
+  background-color: #ff4500;
+  color: white;
+}
+
+.btn-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 50%;
+  box-sizing: border-box;
 }
 
 .btn-group button {
@@ -145,6 +151,62 @@ html {
 .btn-group button:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px #00000070;
+}
+
+.aviso {
+  width: 40%;
+  background-color: yellow;
+  color: black;
+  display: block;
+  margin: 1rem auto;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 2rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.zona-cartones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  width: 80%;
+  box-sizing: border-box;
+}
+
+.carton {
+  background: #000000;
+  padding: 0.5rem;
+  margin: 0.3rem;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(3, auto);
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.celda-carton {
+  background-color: #333;
+  border: 1px solid #999;
+  padding: 0.5rem;
+  border-radius: 5px;
+  font-weight: bold;
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.celda-carton.marcada {
+  background-color: green;
+  color: white;
 }
 
 .modal-premio {
@@ -169,22 +231,6 @@ html {
   box-shadow: 0 0 15px #000;
 }
 
-.bolilla-imagen {
-  max-width: 200px;
-}
-
-.mensaje-tiempo {
-  font-size: 24px;
-  text-align: center;
-  background-color: #fff700;
-  color: #121212;
-  padding: 12px;
-  border-radius: 10px;
-  margin: 20px auto;
-  width: fit-content;
-  font-weight: 700;
-}
-
 @keyframes blink-border {
   0% {
     border-color: #ffcc00;
@@ -194,5 +240,145 @@ html {
   }
   100% {
     border-color: #ffcc00;
+  }
+}
+
+@media (max-width: 1282px) {
+  .zona-derecha {
+    min-width: 0;
+  }
+
+  .bolilla-grid-wrapper {
+    min-width: 100%;
+  }
+
+  .bolilla-grid {
+    grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1024px) {
+  .gameplay-container {
+    width: 95%;
+  }
+
+  .zona-principal {
+    flex-wrap: wrap;
+  }
+
+  .gameplay-wrapper {
+    max-width: 90%;
+  }
+
+  .zona-izquierda,
+  .zona-centro,
+  .zona-derecha {
+    min-width: 265px;
+  }
+
+  .zona-izquierda {
+    min-height: 280px;
+  }
+
+  .zona-izquierda p {
+    margin: 0.3rem;
+  }
+
+  .zona-derecha {
+    min-width: 100%;
+  }
+
+  .bolilla-grid {
+    grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+    max-width: 85%;
+  }
+
+  .aviso {
+    width: 70%;
+  }
+
+  .btn-group {
+    gap: 5px;
+  }
+
+  .btn-group button {
+    min-width: 100px;
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .zona-principal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .zona-derecha {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .zona-izquierda,
+  .zona-centro {
+    min-height: 205px;
+  }
+
+  .zona-izquierda p {
+    margin: 0rem;
+  }
+
+  .btn-group {
+    flex-direction: column;
+  }
+
+  .btn-group button {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .bolilla-imagen {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 660px) {
+  .carton {
+  }
+}
+
+@media (max-width: 480px) {
+  .zona-derecha {
+    min-width: 100%;
+  }
+
+  .logo {
+    max-width: 200px;
+  }
+
+  .bolilla-grid {
+    grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+    max-width: 85%;
+  }
+
+  .aviso {
+    font-size: 1.3rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .mensaje-global {
+    font-size: 0.9rem;
+    padding: 4px;
+  }
+
+  .celda-carton {
+    width: 18px;
+    height: 18px;
+    font-size: 0.85rem;
+  }
+
+  .carton {
+    padding: 0.25rem;
+    margin: 0.25rem;
   }
 }

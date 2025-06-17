@@ -12,7 +12,7 @@ const RegisterForm = () => {
     apellido: "",
     dni: "",
     usuario: "",
-    senia: "",
+    contraseña: "",
     confirmar: "",
   });
   const [error, setError] = useState("");
@@ -25,37 +25,40 @@ const RegisterForm = () => {
     e.preventDefault();
     setError("");
 
-    const { nombre, apellido, dni, usuario, senia, confirmar } = formData;
+    const { nombre, apellido, dni, usuario, contraseña, confirmar } = formData;
 
-    if (senia !== confirmar) {
+    if (contraseña !== confirmar) {
       setError("Las contraseñas no coinciden");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:3001/register", {
+      const res = await fetch("http://localhost:3001/api/usuarios/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre,
           apellido,
           documento: dni,
-          username: usuario,
-          password: senia,
+          usuario,
+          contraseña,
         }),
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        const loginRes = await fetch("http://localhost:3001/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: usuario,
-            password: senia,
-          }),
-        });
+        const loginRes = await fetch(
+          "http://localhost:3001/api/usuarios/login",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              usuario,
+              contraseña,
+            }),
+          }
+        );
 
         const loginData = await loginRes.json();
 
@@ -115,9 +118,9 @@ const RegisterForm = () => {
         />
         <input
           type="password"
-          name="senia"
+          name="contraseña"
           placeholder="Contraseña"
-          value={formData.senia}
+          value={formData.contraseña}
           onChange={handleChange}
           required
         />

@@ -47,13 +47,12 @@ const GamePlay = () => {
   const navigate = useNavigate();
 
   const [soundOn, setSoundOn] = useState(true);
-  const [creditos, setCreditos] = useState(user?.creditos || 0);
   const [cartones, setCartones] = useState([]);
   const [bolillaActual, setBolillaActual] = useState(null);
   const [contador, setContador] = useState(0);
   const [modalPremio, setModalPremio] = useState(null);
   const [mensajeGlobal, setMensajeGlobal] = useState("");
-  const [horaSorteo, setHoraSorteo] = useState("");
+  const [fechaSorteo, setFechaSorteo] = useState("");
   const [acumulado, setAcumulado] = useState(0);
   const [premioLinea, setPremioLinea] = useState(0);
   const [premioBingo, setPremioBingo] = useState(0);
@@ -105,28 +104,91 @@ const GamePlay = () => {
   );
 
   useEffect(() => {
+    const bolillasGuardadas = JSON.parse(
+      localStorage.getItem("bolillasEmitidas")
+    );
+    if (Array.isArray(bolillasGuardadas)) {
+      setBolillas(bolillasGuardadas);
+    }
+
+    socket.on("estadoActual", ({ bolillasEmitidas }) => {
+      setBolillas(bolillasEmitidas);
+      localStorage.setItem(
+        "bolillasEmitidas",
+        JSON.stringify(bolillasEmitidas)
+      );
+    });
+
+    socket.on("nuevaBolilla", (bolilla) => {
+      setBolillas((prev) => {
+        const actualizadas = [...prev, bolilla];
+        localStorage.setItem("bolillasEmitidas", JSON.stringify(actualizadas));
+        return actualizadas;
+      });
+    });
+
+    socket.on("finSorteo", () => {
+      setBolillas([]);
+      localStorage.removeItem("bolillasEmitidas");
+    });
+
+    return () => {
+      socket.off("estadoActual");
+      socket.off("nuevaBolilla");
+      socket.off("finSorteo");
+    };
+  }, []);
+
+  useEffect(() => {
     if (!socket || !user?.username) return;
-    socket.emit("obtenerCartonesDisponibles");
+
+    // Restaurar cartones desde localStorage si existen
+    const guardados = localStorage.getItem("cartonesUsuario");
+    if (guardados) {
+      try {
+        const parsed = JSON.parse(guardados);
+        if (Array.isArray(parsed)) {
+          setCartones(parsed);
+          cartonesRef.current = parsed;
+          marcadasCartonesRef.current = [];
+        }
+      } catch (e) {
+        console.warn("⚠️ Error al parsear cartones guardados:", e);
+      }
+    }
+
+    // Solicitar cartones actualizados al servidor
+    socket.emit("obtenerCartonesAsignados");
     socket.emit("solicitarInfoPartida");
 
     const onRecibirCartones = (cartonesServer) => {
+      console.log("📦 Cartones del servidor:", cartonesServer);
       setCartones(cartonesServer);
       cartonesRef.current = cartonesServer;
       marcadasCartonesRef.current = [];
+      localStorage.setItem("cartonesUsuario", JSON.stringify(cartonesServer));
     };
 
-    const infoUsuarioHandler = ({
-      creditos: c,
-      hora,
+    socket.on("recibirCartones", onRecibirCartones);
+
+    return () => {
+      socket.off("recibirCartones", onRecibirCartones);
+    };
+  }, [socket, user?.username]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleInfoPartida = ({
+      fecha,
       acumulado: a,
       premioLinea: pl,
       premioBingo: pb,
     }) => {
-      setCreditos(c);
-      setHoraSorteo(hora);
-      setAcumulado(a);
-      setPremioLinea(pl);
-      setPremioBingo(pb);
+      setFechaSorteo(fecha);
+      setAcumulado(a ?? 0);
+      setPremioLinea(pl ?? 0);
+      setPremioBingo(pb ?? 0);
     };
 
     const mostrarModalGanador = (tipo, jugador, monto) => {
@@ -162,10 +224,7 @@ const GamePlay = () => {
       setMensajeGlobal(texto);
     };
 
-    socket.on("infoUsuario", infoUsuarioHandler);
-    socket.on("recibirCartones", onRecibirCartones);
-    socket.on("infoPartida", infoUsuarioHandler);
-    socket.on("nuevaBolilla", handleNewBolilla);
+    socket.on("infoPartida", handleInfoPartida);
     socket.on("ganadorLinea", onGanadorLinea);
     socket.on("ganadorBingo", onGanadorBingo);
     socket.on("ganadorAcumulado", onGanadorAcumulado);
@@ -173,17 +232,14 @@ const GamePlay = () => {
     socket.on("mensaje-tiempo", mensajeTiempoHandler);
 
     return () => {
-      socket.off("infoUsuario", infoUsuarioHandler);
-      socket.off("recibirCartones", onRecibirCartones);
-      socket.off("infoPartida", infoUsuarioHandler);
-      socket.off("nuevaBolilla", handleNewBolilla);
+      socket.off("infoPartida", handleInfoPartida);
       socket.off("ganadorLinea", onGanadorLinea);
       socket.off("ganadorBingo", onGanadorBingo);
       socket.off("ganadorAcumulado", onGanadorAcumulado);
       socket.off("audio-evento", audioEventoHandler);
       socket.off("mensaje-tiempo", mensajeTiempoHandler);
     };
-  }, [socket, user, soundOn, handleNewBolilla]);
+  }, [socket, soundOn]);
 
   const handleBack = () => navigate("/welcome");
 
@@ -194,7 +250,7 @@ const GamePlay = () => {
         <div className="zona-principal">
           <div className="zona-izquierda texto-item">
             <p>
-              <strong>SORTEO DE LAS:</strong> {horaSorteo || "–"}
+              <strong>SORTEO DE LAS:</strong> {fechaSorteo || "–"}
             </p>
             <p>
               <strong>TOPE:</strong> 39
@@ -203,13 +259,22 @@ const GamePlay = () => {
               <strong>BOLA:</strong> {contador}
             </p>
             <p>
-              <strong>ACUMULADO:</strong> ${acumulado.toLocaleString("es-AR")}
+              <strong>ACUMULADO:</strong>{" "}
+              {typeof acumulado === "number"
+                ? acumulado.toLocaleString("es-AR")
+                : "-"}
             </p>
             <p>
-              <strong>LÍNEA:</strong> ${premioLinea.toLocaleString("es-AR")}
+              <strong>LÍNEA:</strong>{" "}
+              {typeof acumulado === "number"
+                ? premioLinea.toLocaleString("es-AR")
+                : "-"}
             </p>
             <p>
-              <strong>BINGO:</strong> ${premioBingo.toLocaleString("es-AR")}
+              <strong>BINGO:</strong>{" "}
+              {typeof acumulado === "number"
+                ? premioBingo.toLocaleString("es-AR")
+                : "-"}
             </p>
           </div>
           <div className="zona-centro">
@@ -277,20 +342,50 @@ const GamePlay = () => {
       </div>
       <h2 className="aviso">YA COMIENZA</h2>
       <div className="zona-cartones">
-        {cartones.map((carton, idxCarton) => (
-          <div key={idxCarton} className="carton">
-            {carton.map((celda, idxCelda) => (
-              <div
-                key={idxCelda}
-                className={`celda-carton ${
-                  marcadasCartonesRef.current.includes(celda) ? "marcada" : ""
-                }`}
-              >
-                {celda !== 0 ? celda : ""}
-              </div>
-            ))}
-          </div>
-        ))}
+        {cartones.map((carton, idxCarton) => {
+          let plano = [];
+
+          if (Array.isArray(carton)) {
+            plano = carton;
+          } else if (typeof carton === "string") {
+            try {
+              const parsed = JSON.parse(carton);
+              if (Array.isArray(parsed)) plano = parsed;
+            } catch (err) {
+              console.warn("⚠️ Cartón inválido:", carton);
+            }
+          } else {
+            console.warn("⚠️ Cartón no procesable:", carton);
+          }
+
+          if (plano.length !== 27) {
+            console.warn("⚠️ Cartón con longitud incorrecta:", plano);
+            return null;
+          }
+
+          const filas = Array.from({ length: 3 }, (_, i) =>
+            plano.slice(i * 9, (i + 1) * 9)
+          );
+
+          return (
+            <div key={idxCarton} className="carton">
+              {filas.map((fila, idxFila) =>
+                fila.map((celda, idxCelda) => (
+                  <div
+                    key={`${idxFila}-${idxCelda}`}
+                    className={`celda-carton ${
+                      marcadasCartonesRef.current.includes(celda)
+                        ? "marcada"
+                        : ""
+                    }`}
+                  >
+                    {celda !== 0 ? celda : ""}
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
       </div>
       <div className="btn-group">
         <button onClick={() => setSoundOn((prev) => !prev)}>

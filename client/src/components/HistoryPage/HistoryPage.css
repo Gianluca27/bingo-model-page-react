@@ -1,7 +1,20 @@
 .history-page {
-  padding: 2rem;
+  margin: auto;
   color: white;
   font-family: "Poppins", sans-serif;
+}
+
+.admin-content {
+  justify-content: center;
+  align-items: center;
+  font-family: "Poppins", sans-serif;
+  background: white;
+  color: #0b0f50;
+  padding: 2rem;
+  width: 70%;
+  margin: 0 auto;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
 }
 
 .admin-content h2 {

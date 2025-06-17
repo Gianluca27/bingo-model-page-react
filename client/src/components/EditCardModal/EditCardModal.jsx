@@ -16,7 +16,7 @@ const EditCardModal = ({ isOpen, onClose, onSave, cardData }) => {
 
   const handleGuardar = async () => {
     try {
-      await axios.put(`http://localhost:3001/admin/cartones/${cardData.id}`, {
+      await axios.put(`http://localhost:3001/api/cartones/${cardData.id}`, {
         usuario,
         numero_carton: numeroCarton,
       });

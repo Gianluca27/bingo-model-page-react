@@ -27,7 +27,7 @@
   margin-top: 20px;
 }
 
-.btn-primary {
+.modal-buttons .btn-primary {
   background-color: #007bff;
   border: none;
   padding: 8px 16px;
@@ -36,7 +36,7 @@
   border-radius: 4px;
 }
 
-.btn-secondary {
+.modal-buttons .btn-secondary {
   background-color: #6c757d;
   border: none;
   padding: 8px 16px;

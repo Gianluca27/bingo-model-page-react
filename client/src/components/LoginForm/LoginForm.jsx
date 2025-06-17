@@ -25,17 +25,21 @@ const LoginForm = () => {
     e.preventDefault();
     setError("");
     try {
-      const res = await fetch("http://localhost:3001/login", {
+      const res = await fetch("http://localhost:3001/api/usuarios/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          usuario: credentials.username,
+          contraseña: credentials.password,
+        }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
         login({
           username: data.username,
-          creditos: data.creditos,
           admin: data.admin,
         });
         socket.emit("login", data.username);

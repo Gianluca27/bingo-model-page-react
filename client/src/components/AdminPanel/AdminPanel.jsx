@@ -9,10 +9,11 @@ import EditCardModal from "../EditCardModal/EditCardModal";
 import NewCardModal from "../NewCardModal/NewCardModal";
 import CartonesModal from "../CartonesModal/CartonesModal";
 import "./AdminPanel.css";
+import { useNavigate } from "react-router-dom";
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("usuarios");
-
+  const navigate = useNavigate();
   const renderTab = () => {
     switch (activeTab) {
       case "usuarios":

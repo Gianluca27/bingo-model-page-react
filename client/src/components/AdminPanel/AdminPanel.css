@@ -6,8 +6,7 @@
 }
 
 .admin-box {
-  background-color: #f4f6fc;
-  padding: 30px;
+  padding: 0 30px 30px;
   border-radius: 15px;
   max-height: 900px;
   width: 100%;
@@ -19,7 +18,8 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  margin-bottom: 25px;
+  width: fit-content;
+  margin: 0 auto 25px;
   padding: 15px;
   background-color: #ffffff;
   border-radius: 10px;

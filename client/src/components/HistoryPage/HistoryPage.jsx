@@ -4,64 +4,150 @@ import axios from "axios";
 
 const HistoryPage = () => {
   const [historial, setHistorial] = useState([]);
+  const [error, setError] = useState(null);
 
-  const cargarHistorial = async () => {
-    try {
-      const response = await axios.get("http://localhost:3001/admin/historial");
-      setHistorial(response.data);
-    } catch (err) {
-      console.error("❌ Error al cargar historial:", err);
+  function dividirEnFilas(cartonPlano) {
+    if (!Array.isArray(cartonPlano) || cartonPlano.length !== 27) return [];
+    const filas = [];
+    for (let i = 0; i < 3; i++) {
+      filas.push(cartonPlano.slice(i * 9, (i + 1) * 9));
     }
-  };
-
-  const eliminarHistorial = async (id) => {
-    try {
-      await axios.delete(`http://localhost:3001/admin/historial/${id}`);
-      setHistorial(historial.filter((h) => h.id !== id));
-    } catch (err) {
-      console.error("❌ Error al eliminar historial:", err);
-    }
-  };
+    return filas;
+  }
 
   useEffect(() => {
-    cargarHistorial();
+    // Obtener histórico de sorteos (HistorialSorteos)
+    axios
+      .get("http://localhost:3001/api/historial")
+      .then((res) => {
+        const data = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data.rows)
+          ? res.data.rows
+          : [];
+        setHistorial(data);
+      })
+      .catch((err) => {
+        console.error("Error cargando histórico de sorteos:", err);
+        setError("No se pudo cargar el historial de sorteos.");
+      });
   }, []);
 
+  const eliminarHistorial = async (id) => {
+    if (
+      !window.confirm(
+        "¿Seguro que quieres eliminar este registro de historial?"
+      )
+    ) {
+      return;
+    }
+    try {
+      await axios.delete(`http://localhost:3001/api/historial/${id}`);
+      setHistorial((prev) => prev.filter((h) => h.id !== id));
+    } catch (err) {
+      console.error("❌ Error al eliminar registro de historial:", err);
+    }
+  };
+
+  const formatFechaHora = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const dia = String(date.getDate()).padStart(2, "0");
+    const mes = String(date.getMonth() + 1).padStart(2, "0");
+    const anio = String(date.getFullYear()).slice(2);
+    const horas = String(date.getHours()).padStart(2, "0");
+    const minutos = String(date.getMinutes()).padStart(2, "0");
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+  };
+
   return (
-    <div className="admin-panel">
+    <div className="history-page">
       <div className="admin-content">
         <h2>Historial de Sorteos</h2>
+        {error && <p className="error">{error}</p>}
+
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Hora</th>
+                <th>Fecha y Hora</th>
                 <th>Bolillas</th>
                 <th>Cartones</th>
-                <th>Línea</th>
-                <th>Bingo</th>
-                <th>Acumulado</th>
+                <th>Ganadores Línea</th>
+                <th>Ganadores Bingo</th>
+                <th>Ganadores Acumulado</th>
                 <th>🗑️</th>
               </tr>
             </thead>
             <tbody>
-              {historial.map((registro) => (
-                <tr key={registro.id}>
-                  <td>{registro.fecha_hora}</td>
-                  <td>{registro.hora_sorteo}</td>
-                  <td>{registro.bolillas}</td>
-                  <td>{registro.cartones_jugados}</td>
-                  <td>{registro.ganadores_linea}</td>
-                  <td>{registro.ganadores_bingo}</td>
-                  <td>{registro.ganadores_acumulado}</td>
-                  <td>
-                    <button onClick={() => eliminarHistorial(registro.id)}>
-                      🗑️
-                    </button>
+              {Array.isArray(historial) && historial.length > 0 ? (
+                historial.map((registro) => {
+                  let bolillas = [];
+                  let cartones = [];
+                  let ganadoresLinea = [];
+                  let ganadoresBingo = [];
+                  let ganadoresAcumulado = [];
+
+                  try {
+                    bolillas = JSON.parse(registro.bolillas);
+                  } catch {}
+                  try {
+                    cartones = JSON.parse(registro.cartones_jugados);
+                  } catch {}
+                  try {
+                    ganadoresLinea = JSON.parse(registro.ganadores_linea);
+                  } catch {}
+                  try {
+                    ganadoresBingo = JSON.parse(registro.ganadores_bingo);
+                  } catch {}
+                  try {
+                    ganadoresAcumulado = JSON.parse(
+                      registro.ganadores_acumulado
+                    );
+                  } catch {}
+
+                  return (
+                    <tr key={registro.id}>
+                      <td>{formatFechaHora(registro.fecha_hora)}</td>
+                      <td>{bolillas.join(", ")}</td>
+                      <td>
+                        {`Cartones: ${cartones.length}. Números: ${cartones
+                          .map((c) =>
+                            typeof c === "object" && c.numero ? c.numero : ""
+                          )
+                          .filter((n) => n !== "")
+                          .join(", ")}`}
+                      </td>
+                      <td>
+                        {ganadoresBingo
+                          .map((g) => `${g.usuario} (#${g.numeroCarton})`)
+                          .join("; ")}
+                      </td>
+                      <td>
+                        {ganadoresAcumulado
+                          .map((g) => `${g.usuario} (#${g.numeroCarton})`)
+                          .join("; ")}
+                      </td>
+                      <td>
+                        <button onClick={() => eliminarHistorial(registro.id)}>
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td
+                    colSpan="7"
+                    style={{ textAlign: "center", padding: "1em" }}
+                  >
+                    {error
+                      ? error
+                      : "No hay sorteos en el historial para mostrar."}
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

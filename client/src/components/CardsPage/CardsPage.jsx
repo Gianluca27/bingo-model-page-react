@@ -13,7 +13,7 @@ const CardsPage = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
 
   const cargarCartones = () => {
-    fetch("http://localhost:3001/admin/cartones")
+    fetch("http://localhost:3001/api/cartones")
       .then((res) => res.json())
       .then(setCartones);
   };
@@ -21,14 +21,8 @@ const CardsPage = () => {
     cargarCartones();
   }, []);
 
-  const eliminarCarton = (id) => {
-    fetch(`http://localhost:3001/admin/cartones/${id}`, {
-      method: "DELETE",
-    }).then(cargarCartones);
-  };
-
   const agregarCarton = () => {
-    fetch("http://localhost:3001/admin/cartones", {
+    fetch("http://localhost:3001/api/cartones", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(nuevoCarton),
@@ -47,6 +41,17 @@ const CardsPage = () => {
       ? valor.startsWith(valorBusqueda)
       : valor.toString().includes(valorBusqueda);
   });
+
+  const formatFechaHora = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const dia = String(date.getDate()).padStart(2, "0");
+    const mes = String(date.getMonth() + 1).padStart(2, "0");
+    const anio = String(date.getFullYear()).slice(2);
+    const horas = String(date.getHours()).padStart(2, "0");
+    const minutos = String(date.getMinutes()).padStart(2, "0");
+    return `${dia}/${mes}/${anio} ${horas}:${minutos}`;
+  };
 
   const modal = modalAbierto && (
     <div className="nuevo-carton-modal">
@@ -86,61 +91,58 @@ const CardsPage = () => {
 
   return (
     <div className="cards-page">
-      <h2>Gestión de Cartones</h2>
-      <div className="cartones-busqueda">
-        <button onClick={() => setModalAbierto(true)}>+ Nuevo</button>
-        <select
-          value={campoBusqueda}
-          onChange={(e) => setCampoBusqueda(e.target.value)}
-        >
-          <option value="id">ID</option>
-          <option value="id_partida">ID Partida</option>
-          <option value="usuario">Usuario</option>
-          <option value="fecha_asignacion">Fecha</option>
-          <option value="numero_carton">Cartón</option>
-        </select>
+      <div className="cards-container">
+        <h2>Gestión de Cartones</h2>
+        <div className="cartones-busqueda">
+          <button onClick={() => setModalAbierto(true)}>+ Nuevo</button>
+          <select
+            value={campoBusqueda}
+            onChange={(e) => setCampoBusqueda(e.target.value)}
+          >
+            <option value="id">ID</option>
+            <option value="id_partida">ID Partida</option>
+            <option value="usuario">Usuario</option>
+            <option value="fecha_asignacion">Fecha</option>
+            <option value="numero_carton">Cartón</option>
+          </select>
 
-        <input
-          type={campoBusqueda === "fecha_asignacion" ? "date" : "text"}
-          placeholder={`Buscar por ${campoBusqueda}`}
-          value={valorBusqueda}
-          onChange={(e) => setValorBusqueda(e.target.value)}
-        />
-      </div>
-      <div className="tabla-cartones-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Usuario</th>
-              <th>Partida</th>
-              <th>Cartón</th>
-              <th>Fecha</th>
-              <th>🗑️</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtrados.map((c) => (
-              <tr key={c.id}>
-                <td>{c.id}</td>
-                <td>{c.usuario}</td>
-                <td>{c.id_partida}</td>
-                <td>{c.numero_carton}</td>
-                <td>{c.fecha_asignacion || "-"}</td>
-                <td>
-                  <button
-                    onClick={() => eliminarCarton(c.id)}
-                    className="btn-danger"
-                  >
-                    🗑️
-                  </button>
-                </td>
+          <input
+            type={campoBusqueda === "fecha_asignacion" ? "date" : "text"}
+            placeholder={`Buscar por ${campoBusqueda}`}
+            value={valorBusqueda}
+            onChange={(e) => setValorBusqueda(e.target.value)}
+          />
+        </div>
+        <div className="tabla-cartones-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Partida</th>
+                <th>Cartón</th>
+                <th>Fecha</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtrados.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.id}</td>
+                  <td>{c.usuario}</td>
+                  <td>{c.id_partida}</td>
+                  <td>{c.numero_carton}</td>
+                  <td>
+                    {c.fecha_asignacion
+                      ? formatFechaHora(c.fecha_asignacion)
+                      : "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {modal}
       </div>
-      {modal}
     </div>
   );
 };

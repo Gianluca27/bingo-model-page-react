@@ -22,7 +22,7 @@ const UsersPage = () => {
   const [campoBusqueda, setCampoBusqueda] = useState("usuario"); // valor por defecto
 
   const fetchUsuarios = async () => {
-    const { data } = await axios.get("http://localhost:3001/admin/usuarios");
+    const { data } = await axios.get("http://localhost:3001/api/usuarios");
     setUsuarios(data);
   };
 
@@ -37,7 +37,7 @@ const UsersPage = () => {
 
   const abrirFormulario = (usuario = null) => {
     if (usuario) {
-      setEditando(usuario.id);
+      setEditando(usuario.id_usuario);
       const { password, ...rest } = usuario;
       setFormData({ ...rest, password: "" });
     } else {
@@ -61,151 +61,170 @@ const UsersPage = () => {
   };
 
   const guardarUsuario = async () => {
-    const url = "http://localhost:3001/modificar-usuario";
-    const body = { ...formData, id: editando };
-    await axios.post(url, body);
+    if (editando !== null) {
+      const url = `http://localhost:3001/api/usuarios/${editando}`;
+      const body = { ...formData };
+      if (!body.password) delete body.password;
+
+      await axios.put(url, body);
+    } else {
+      await axios.post("http://localhost:3001/api/usuarios", formData);
+    }
+
     fetchUsuarios();
     cerrarFormulario();
   };
 
-  const eliminarUsuario = async (id) => {
-    await axios.post("http://localhost:3001/eliminar-usuario", { id });
-    fetchUsuarios();
+  const eliminarUsuario = async (id, usuario) => {
+    if (
+      !window.confirm(`¿Seguro que quieres eliminar al usuario “${usuario}”?`)
+    ) {
+      return;
+    }
+    try {
+      await axios.delete(`http://localhost:3001/api/usuarios/${id}`);
+      fetchUsuarios();
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar usuario.");
+    }
   };
 
   const usuariosFiltrados = usuarios.filter((u) => {
     const valorCampo = u[campoBusqueda] ?? "";
-    return valorCampo.includes(busqueda); // ahora distingue mayúsculas/minúsculas
+    return valorCampo.includes(busqueda);
   });
 
   return (
     <div className="users-page">
-      <h3 className="titulo-usuarios">Gestión de Usuarios</h3>
-      <div className="busqueda-box">
-        <button onClick={() => abrirFormulario()} className="btn-success">
-          Agregar Usuario
-        </button>
-        <select
-          value={campoBusqueda}
-          onChange={(e) => setCampoBusqueda(e.target.value)}
-          className="select-filtro"
-        >
-          <option value="nombre">Nombre</option>
-          <option value="apellido">Apellido</option>
-          <option value="usuario">Usuario</option>
-          <option value="documento">DNI</option>
-        </select>
+      <div className="users-container">
+        <h3 className="titulo-usuarios">Gestión de Usuarios</h3>
+        <div className="busqueda-box">
+          <button onClick={() => abrirFormulario()} className="btn-success">
+            Agregar Usuario
+          </button>
+          <select
+            value={campoBusqueda}
+            onChange={(e) => setCampoBusqueda(e.target.value)}
+            className="select-filtro"
+          >
+            <option value="nombre">Nombre</option>
+            <option value="apellido">Apellido</option>
+            <option value="usuario">Usuario</option>
+            <option value="documento">DNI</option>
+          </select>
 
-        <input
-          type="text"
-          placeholder={`Buscar por ${campoBusqueda}...`}
-          className="input-busqueda"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
-      </div>
-      <div className="tabla-usuarios-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Apellido</th>
-              <th>DNI</th>
-              <th>Usuario</th>
-              <th>Créditos</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuariosFiltrados.map((u) => (
-              <tr key={u.id}>
-                <td>{u.nombre}</td>
-                <td>{u.apellido}</td>
-                <td>{u.documento}</td>
-                <td>{u.usuario}</td>
-                <td>{u.creditos}</td>
-                <td>
-                  <button
-                    onClick={() => abrirFormulario(u)}
-                    className="btn-primary"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => eliminarUsuario(u.id)}
-                    className="btn-danger"
-                  >
-                    🗑️
-                  </button>
-                </td>
+          <input
+            type="text"
+            placeholder={`Buscar por ${campoBusqueda}...`}
+            className="input-busqueda"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+          />
+        </div>
+        <div className="tabla-usuarios-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>DNI</th>
+                <th>Usuario</th>
+                <th>Créditos</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {formVisible && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>{editando !== null ? "Editar Usuario" : "Nuevo Usuario"}</h3>
-            <label>Nombre</label>
-            <input
-              name="nombre"
-              placeholder="Nombre"
-              value={formData.nombre}
-              onChange={handleInputChange}
-            />
-            <label>Apellido</label>
-            <input
-              name="apellido"
-              placeholder="Apellido"
-              value={formData.apellido}
-              onChange={handleInputChange}
-            />
-            <label>Documento</label>
-            <input
-              name="documento"
-              placeholder="DNI"
-              value={formData.documento}
-              onChange={handleInputChange}
-            />
-            <label>Usuario</label>
-            <input
-              name="usuario"
-              placeholder="Usuario"
-              value={formData.usuario}
-              onChange={handleInputChange}
-            />
-            {editando === null && (
-              <>
-                <label>Contraseña</label>
-                <input
-                  name="password"
-                  type="password"
-                  placeholder="Contraseña"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                />
-              </>
-            )}
-            <label>Creditos</label>
-            <input
-              name="creditos"
-              type="number"
-              placeholder="Créditos"
-              value={formData.creditos}
-              onChange={handleInputChange}
-            />
-            <div className="form-buttons">
-              <button onClick={cerrarFormulario} className="btn-danger">
-                Cancelar
-              </button>
-              <button onClick={guardarUsuario} className="btn-success">
-                Guardar
-              </button>
+            </thead>
+            <tbody>
+              {usuariosFiltrados.map((u) => (
+                <tr key={u.id_usuario}>
+                  <td>{u.nombre}</td>
+                  <td>{u.apellido}</td>
+                  <td>{u.documento}</td>
+                  <td>{u.usuario}</td>
+                  <td>{u.creditos}</td>
+                  <td>
+                    <button
+                      onClick={() => abrirFormulario(u)}
+                      className="btn-primary"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => eliminarUsuario(u.id_usuario)}
+                      className="btn-danger"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {formVisible && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>{editando !== null ? "Editar Usuario" : "Nuevo Usuario"}</h3>
+              <label>Nombre</label>
+              <input
+                name="nombre"
+                placeholder="Nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+              />
+              <label>Apellido</label>
+              <input
+                name="apellido"
+                placeholder="Apellido"
+                value={formData.apellido}
+                onChange={handleInputChange}
+              />
+              <label>Documento</label>
+              <input
+                name="documento"
+                placeholder="DNI"
+                value={formData.documento}
+                onChange={handleInputChange}
+              />
+              <label>Usuario</label>
+              <input
+                name="usuario"
+                placeholder="Usuario"
+                value={formData.usuario}
+                onChange={handleInputChange}
+              />
+              {editando === null && (
+                <>
+                  <label>Contraseña</label>
+                  <input
+                    name="password"
+                    type="password"
+                    placeholder="Contraseña"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                  />
+                </>
+              )}
+              <label>Creditos</label>
+              <input
+                name="creditos"
+                type="number"
+                placeholder="Créditos"
+                value={formData.creditos}
+                onChange={handleInputChange}
+              />
+              <div className="form-buttons">
+                <button onClick={cerrarFormulario} className="btn-danger">
+                  Cancelar
+                </button>
+                <button onClick={guardarUsuario} className="btn-success">
+                  Guardar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

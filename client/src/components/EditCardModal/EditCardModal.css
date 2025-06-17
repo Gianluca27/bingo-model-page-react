@@ -33,7 +33,7 @@
   justify-content: space-between;
 }
 
-.btn-success {
+.modal .btn-success {
   background-color: #28a745;
   color: white;
   padding: 6px 14px;
@@ -42,7 +42,7 @@
   cursor: pointer;
 }
 
-.btn-danger {
+.modal .btn-danger {
   background-color: #dc3545;
   color: white;
   padding: 6px 14px;

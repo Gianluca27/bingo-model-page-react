@@ -5,40 +5,43 @@ import { useNavigate } from "react-router-dom";
 import SocketContext from "../../services/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
+import { formatFecha } from "../../utils/formatDate";
 
 const WelcomePage = () => {
   const socket = useContext(SocketContext);
   const { user, logout } = useAuth();
   const [texto, setTexto] = useState("");
-  const [hora, setHora] = useState("");
+  const [fecha, setFecha] = useState("");
   const [premios, setPremios] = useState({});
   const [mensajeGlobal, setMensajeGlobal] = useState("");
   const [cantidadCartones, setCantidadCartones] = useState(1);
+  const [cartones, setCartones] = useState(0);
   const navigate = useNavigate();
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   useEffect(() => {
-    fetch("http://localhost:3001/admin/config")
-      .then(async (res) => {
-        if (!res.ok) {
-          const error = await res
-            .json()
-            .catch(() => ({ error: "Error inesperado del servidor" }));
-          throw new Error(error.error || "Error al obtener configuración");
-        }
-        return res.json();
-      })
+    fetch("http://localhost:3001/api/partida-proxima")
+      .then((res) => res.json())
       .then((data) => {
+        if (!data) {
+          setTexto("No hay jugadas programadas por ahora.");
+          return;
+        }
+
         setPremios({
           valorCarton: data.valorCarton,
           premioLinea: data.premioLinea,
           premioBingo: data.premioBingo,
           premioAcumulado: data.premioAcumulado,
         });
-        setHora(data.horaSorteo);
-        setTexto(data.texto);
+        setFecha(data.fechaSorteo);
       })
       .catch((err) => {
-        console.error("❌ Error al cargar configuración:", err.message);
+        console.error("❌ Error al cargar próxima partida:", err.message);
         setTexto("No hay jugadas programadas por ahora.");
       });
   }, []);
@@ -63,10 +66,14 @@ const WelcomePage = () => {
     }
   }, [user, socket]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login");
-  };
+  useEffect(() => {
+    const handleDatosUsuario = ({ creditos, cartones }) => {
+      user.creditos = creditos;
+      setCartones(cartones);
+    };
+    socket.on("datosUsuario", handleDatosUsuario);
+    return () => socket.off("datosUsuario", handleDatosUsuario);
+  }, [socket, user]);
 
   return (
     <section className="welcome-page">
@@ -81,14 +88,9 @@ const WelcomePage = () => {
             </span>
             a BINGOManiaMia!
           </h1>
-          {user?.creditos !== undefined && (
-            <h2>
-              CRÉDITOS DISPONIBLES:{" "}
-              <span className="values">${user.creditos}</span>
-            </h2>
-          )}
           <h2>
-            FECHA DEL PRÓXIMO SORTEO: <span className="values">{hora}HS</span>
+            FECHA DEL PRÓXIMO SORTEO:{" "}
+            <span className="values">{formatFecha(fecha)}HS</span>
           </h2>
           <h2>
             VALOR DEL CARTÓN:{" "}
@@ -107,19 +109,33 @@ const WelcomePage = () => {
             <span className="values">${premios.premioAcumulado}</span>
           </h2>
         </div>
+        <div className="user-info">
+          {user?.creditos !== undefined && (
+            <h2>
+              CRÉDITOS DISPONIBLES:{" "}
+              <span className="values">${user.creditos}</span>
+            </h2>
+          )}
+          {cartones !== undefined && (
+            <h2>
+              CARTONES DISPONIBLES:{" "}
+              <span className="values">{cartones} / 12</span>
+            </h2>
+          )}
+          <h3>ELEGÍ LA CANTIDAD DE CARTONES:</h3>
+          <select
+            id="cantidad-cartones"
+            value={cantidadCartones}
+            onChange={(e) => setCantidadCartones(parseInt(e.target.value))}
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>
+                {i + 1}
+              </option>
+            ))}
+          </select>
+        </div>
         <h2>{texto}</h2>
-        <h3>ELEGÍ LA CANTIDAD DE CARTONES:</h3>
-        <select
-          id="cantidad-cartones"
-          value={cantidadCartones}
-          onChange={(e) => setCantidadCartones(parseInt(e.target.value))}
-        >
-          {Array.from({ length: 12 }, (_, i) => (
-            <option key={i + 1} value={i + 1}>
-              {i + 1}
-            </option>
-          ))}
-        </select>
         <div className="welco-btn-group">
           <button className="btn">REGLAS</button>
           <button className="btn">CRÉDITOS</button>

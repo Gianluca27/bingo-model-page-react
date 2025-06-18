@@ -119,6 +119,7 @@ const WelcomePage = () => {
             </span>
             a BINGOManiaMia!
           </h1>
+          <h3>{texto}</h3>
           <h2>
             FECHA DEL PRÓXIMO SORTEO:{" "}
             <span className="values">{formatFecha(fecha)}HS</span>
@@ -174,7 +175,6 @@ const WelcomePage = () => {
             ))}
           </select>
         </div>
-        <h2>{texto}</h2>
         <div className="welco-btn-group">
           <button className="btn">COMO JUGAR</button>
           <button className="btn">COMPRAR CRÉDITOS</button>

@@ -116,7 +116,7 @@ const GamePlay = () => {
 
   useEffect(() => {
     socket.emit("unirseAPartidaActual", (data) => {
-      if (!data.partida) {
+      if (!data?.partida) {
         setModoEspectador(true);
         return;
       }
@@ -128,11 +128,9 @@ const GamePlay = () => {
       setModoEspectador(!data.cartones || data.cartones.length === 0);
 
       if (Array.isArray(data.bolillas)) {
-        const bolillas = data.bolillas;
-
-        setDrawnNumbers(bolillas);
-        setContador(bolillas.length);
-        setBolillaActual(bolillas.at(-1) ?? null);
+        setDrawnNumbers(data.bolillas);
+        setContador(data.bolillas.length);
+        setBolillaActual(data.bolillas.at(-1) ?? null);
 
         const marcadas = [];
         cartonesRef.current.forEach((carton) => {
@@ -140,7 +138,7 @@ const GamePlay = () => {
           carton.forEach((fila) => {
             if (!Array.isArray(fila)) return;
             fila.forEach((celda) => {
-              if (bolillas.includes(celda)) {
+              if (data.bolillas.includes(celda)) {
                 marcadas.push(celda);
               }
             });

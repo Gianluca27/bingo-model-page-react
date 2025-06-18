@@ -225,27 +225,43 @@ function registrarSockets(io) {
     });
 
     socket.on("unirseAPartidaActual", (callback) => {
-      if (!partidaEnJuego || !partidaActual) {
+      const partida = gameManager.obtenerPartidaActual();
+
+      if (!partida) {
         return callback({ partida: null });
       }
 
       const usuario = socket.usuario;
+      if (!usuario) {
+        return callback({
+          partida,
+          bolillas: gameManager.obtenerBolillasEmitidas(),
+          cartones: [],
+        });
+      }
+
       db.all(
         `SELECT numero_carton, contenido FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
-        [usuario, partidaActual.id_partida],
+        [usuario, partida.id_partida],
         (err, rows) => {
           const cartones =
             !err && rows.length > 0
-              ? rows.map((r) => ({
-                  numero: r.numero_carton,
-                  contenido: JSON.parse(r.contenido),
-                }))
+              ? rows.map((r) => {
+                  const plano = JSON.parse(r.contenido);
+                  return Array.isArray(plano[0])
+                    ? plano
+                    : [
+                        plano.slice(0, 9),
+                        plano.slice(9, 18),
+                        plano.slice(18, 27),
+                      ];
+                })
               : [];
 
-          const bolillas = gameManager.obtenerBolillasEmitidas(); // ✅
+          const bolillas = gameManager.obtenerBolillasEmitidas();
 
           callback({
-            partida: partidaActual,
+            partida,
             bolillas,
             cartones,
           });

@@ -15,7 +15,6 @@ function registrarSockets(io) {
   const usuariosConectados = {};
   gameManager.setUsuariosMap(usuarios);
   gameManager.setSocketsMap(usuariosConectados);
-  gameManager.iniciarLimpiezaAutomatica();
   io.on("connection", (socket) => {
     console.log("🧲 Nuevo socket conectado:", socket.id);
     if (gameManager.estaPartidaEnJuego()) {

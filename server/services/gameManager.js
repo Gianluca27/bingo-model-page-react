@@ -56,47 +56,6 @@ function obtenerBolillasEmitidas() {
   return bolillasEmitidasGlobal;
 }
 
-function iniciarLimpiezaAutomatica() {
-  setInterval(() => {
-    const ahora = new Date().toISOString();
-
-    db.all(
-      `SELECT id_partida, estado, fecha_hora_jugada 
-       FROM Partidas 
-       WHERE (estado = 'pendiente' OR estado = 'activa') 
-       AND fecha_hora_jugada < ?`,
-      [ahora],
-      (err, partidasVencidas) => {
-        if (err) {
-          console.error("❌ Error al buscar partidas vencidas:", err.message);
-          return;
-        }
-
-        if (!partidasVencidas || partidasVencidas.length === 0) return;
-
-        partidasVencidas.forEach((partida) => {
-          db.run(
-            `UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?`,
-            [partida.id_partida],
-            (err2) => {
-              if (err2) {
-                console.error(
-                  `❌ Error al expirar partida ${partida.id_partida}:`,
-                  err2.message
-                );
-              } else {
-                console.log(
-                  `⏱️ Partida ${partida.id_partida} (${partida.estado}) marcada como expirada por inactividad.`
-                );
-              }
-            }
-          );
-        });
-      }
-    );
-  }, 60 * 1000); // cada 60 segundos
-}
-
 function iniciarSorteo(io, partida) {
   if (!partida || partidaEnJuego) return;
 
@@ -262,5 +221,4 @@ module.exports = {
   obtenerBolillasEmitidas,
   obtenerPartidaActual,
   partidaActualGlobal,
-  iniciarLimpiezaAutomatica,
 };

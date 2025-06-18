@@ -98,9 +98,21 @@ const GamePlay = () => {
     [soundOn]
   );
 
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  useEffect(() => {
+    const handleEstadoActual = ({ bolillasEmitidas, partidaId }) => {
+      if (Array.isArray(bolillasEmitidas)) {
+        // Simula que las bolillas se fueron emitiendo
+        bolillasEmitidas.forEach((b, i) => {
+          setTimeout(() => {
+            setBolillaActual(b);
+          }, i * 500); // velocidad ajustable
+        });
+      }
+    };
+
+    socket.on("estadoActual", handleEstadoActual);
+    return () => socket.off("estadoActual", handleEstadoActual);
+  }, [socket]);
 
   useEffect(() => {
     socket.emit("unirseAPartidaActual", (data) => {
@@ -110,27 +122,33 @@ const GamePlay = () => {
       }
 
       setPartida(data.partida);
-      setDrawnNumbers(data.bolillas || []);
       setCartones(data.cartones || []);
       cartonesRef.current = data.cartones || [];
 
-      marcadasCartonesRef.current = [];
+      setModoEspectador(!data.cartones || data.cartones.length === 0);
+
       if (Array.isArray(data.bolillas)) {
-        data.cartones?.forEach((carton) => {
-          data.bolillas.forEach((n) => {
-            if (carton.includes(n)) {
-              marcadasCartonesRef.current.push(n);
-            }
+        const bolillas = data.bolillas;
+
+        setDrawnNumbers(bolillas);
+        setContador(bolillas.length);
+        setBolillaActual(bolillas.at(-1) ?? null);
+
+        const marcadas = [];
+        cartonesRef.current.forEach((carton) => {
+          if (!Array.isArray(carton)) return;
+          carton.forEach((fila) => {
+            if (!Array.isArray(fila)) return;
+            fila.forEach((celda) => {
+              if (bolillas.includes(celda)) {
+                marcadas.push(celda);
+              }
+            });
           });
         });
-        const ultima = data.bolillas.at(-1);
-        if (ultima) {
-          setBolillaActual(ultima);
-          setContador(data.bolillas.length);
-        }
-      }
 
-      setModoEspectador(!data.cartones || data.cartones.length === 0);
+        marcadasCartonesRef.current = marcadas;
+      }
     });
   }, []);
 

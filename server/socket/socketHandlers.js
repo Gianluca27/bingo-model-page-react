@@ -17,10 +17,17 @@ function registrarSockets(io) {
   gameManager.setSocketsMap(usuariosConectados);
   io.on("connection", (socket) => {
     console.log("🧲 Nuevo socket conectado:", socket.id);
+
     if (gameManager.estaPartidaEnJuego()) {
+      const partidaActiva = gameManager.obtenerPartidaActual();
       socket.emit("estadoActual", {
         bolillasEmitidas: gameManager.obtenerBolillasEmitidas(),
-        partidaId: gameManager.obtenerPartidaActual()?.id_partida || null,
+        partidaId: partidaActiva?.id_partida || null,
+        valorCarton: partidaActiva?.valor_carton,
+        premioLinea: partidaActiva?.premio_linea,
+        premioBingo: partidaActiva?.premio_bingo,
+        premioAcumulado: partidaActiva?.premio_acumulado,
+        fechaSorteo: partidaActiva?.fecha_hora_jugada,
       });
     }
 

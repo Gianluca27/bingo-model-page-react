@@ -101,7 +101,6 @@ const GamePlay = () => {
   useEffect(() => {
     const handleEstadoActual = ({ bolillasEmitidas, partidaId }) => {
       if (Array.isArray(bolillasEmitidas)) {
-        // Simula que las bolillas se fueron emitiendo
         bolillasEmitidas.forEach((b, i) => {
           setTimeout(() => {
             setBolillaActual(b);

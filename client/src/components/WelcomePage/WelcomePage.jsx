@@ -34,48 +34,36 @@ const WelcomePage = () => {
       premioBingo: data.premioBingo ?? data.premio_bingo,
       premioAcumulado: data.premioAcumulado ?? data.premio_acumulado,
     });
-    setFecha(data.fechaSorteo ?? data.fecha_hora_jugada);
 
-    if (estaActiva) {
-      setTexto("🎯 ¡La partida está en juego!");
-    } else {
-      setTexto("");
-    }
+    setFecha(data.fechaSorteo ?? data.fecha_hora_jugada);
+    setTexto(estaActiva ? "🎯 ¡La partida está en juego!" : "");
   };
 
   useEffect(() => {
-    const cargarDatosPartida = (data, estaActiva) => {
-      setPremios({
-        valorCarton: data.valorCarton,
-        premioLinea: data.premioLinea,
-        premioBingo: data.premioBingo,
-        premioAcumulado: data.premioAcumulado,
-      });
-      setFecha(data.fechaSorteo);
-      if (estaActiva) {
-        setTexto("🎯 ¡La partida está en juego!");
-      } else {
-        setTexto(""); // o cualquier otro mensaje por defecto
-      }
+    if (!socket) return;
+
+    const handlerEstadoActual = (data) => {
+      cargarDatosPartida(data, true);
     };
 
-    const obtenerPartidaVisible = async () => {
-      try {
-        const res = await fetch("http://localhost:3001/api/partida-visible");
-        const data = await res.json();
-        if (!data) {
-          setTexto("No hay jugadas programadas por ahora.");
-          return;
-        }
-        cargarDatosPartida(data, data.estado === "activa");
-      } catch (err) {
-        console.error("❌ Error al cargar partida visible:", err.message);
-        setTexto("No hay jugadas programadas por ahora.");
-      }
+    const handlerProximaPartida = (data) => {
+      cargarDatosPartida(data, false);
     };
 
-    obtenerPartidaVisible();
-  }, []);
+    const handlerFinSorteo = (data) => {
+      cargarDatosPartida(data, false);
+    };
+
+    socket.on("estadoActual", handlerEstadoActual);
+    socket.on("proximaPartida", handlerProximaPartida);
+    socket.on("finSorteo", handlerFinSorteo);
+
+    return () => {
+      socket.off("estadoActual", handlerEstadoActual);
+      socket.off("proximaPartida", handlerProximaPartida);
+      socket.off("finSorteo", handlerFinSorteo);
+    };
+  }, [socket]);
 
   useEffect(() => {
     const handler = (mensaje) => setMensajeGlobal(mensaje);

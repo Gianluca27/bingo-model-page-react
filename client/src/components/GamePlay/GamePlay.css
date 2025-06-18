@@ -308,6 +308,11 @@ body {
   }
 }
 
+.modo-espectador {
+  color: white;
+  font-size: 1.5rem;
+}
+
 @media (max-width: 768px) {
   .zona-principal {
     flex-direction: column;
@@ -339,11 +344,6 @@ body {
 
   .bolilla-imagen {
     max-width: 150px;
-  }
-}
-
-@media (max-width: 660px) {
-  .carton {
   }
 }
 

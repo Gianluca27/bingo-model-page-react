@@ -167,7 +167,7 @@ const GamesPage = () => {
                   <td>{p.premio_linea}</td>
                   <td>{p.premio_bingo}</td>
                   <td>{p.premio_acumulado}</td>
-                  <td>{p.finalizado === 1 ? "Finalizado" : "Pendiente"}</td>
+                  <td>{p.estado?.toUpperCase()}</td>
                   <td>
                     <button
                       onClick={() => abrirForm(p)}

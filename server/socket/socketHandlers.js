@@ -3,6 +3,7 @@
 const db = require("../models/db");
 const generarCartonesEnLote = require("../services/cartonGenerator");
 const gameManager = require("../services/gameManager");
+const { partidaEnJuego, partidaActual } = gameManager;
 
 function convertirACartonPlano(carton) {
   if (!carton || !carton.contenido) return [];
@@ -12,13 +13,11 @@ function convertirACartonPlano(carton) {
 function registrarSockets(io) {
   const usuarios = {};
   const usuariosConectados = {};
-
   gameManager.setUsuariosMap(usuarios);
   gameManager.setSocketsMap(usuariosConectados);
-
+  gameManager.iniciarLimpiezaAutomatica();
   io.on("connection", (socket) => {
     console.log("🧲 Nuevo socket conectado:", socket.id);
-
     if (gameManager.estaPartidaEnJuego()) {
       socket.emit("estadoActual", {
         bolillasEmitidas: gameManager.obtenerBolillasEmitidas(),
@@ -32,11 +31,9 @@ function registrarSockets(io) {
         [nombre],
         (err, row) => {
           if (err || !row) return socket.emit("error", "Usuario no encontrado");
-
           socket.usuario = nombre;
           usuarios[nombre] = { creditos: row.creditos };
           usuariosConectados[nombre] = socket.id;
-
           db.get(
             `SELECT id_partida FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
             [],
@@ -102,11 +99,39 @@ function registrarSockets(io) {
       );
     });
 
+    socket.on("solicitarDatosUsuario", (callback) => {
+      const nombre = socket.usuario;
+      db.get(
+        "SELECT creditos FROM Usuarios WHERE usuario = ?",
+        [nombre],
+        (err, row) => {
+          if (err || !row) return callback(null);
+          db.get(
+            "SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ?",
+            [nombre],
+            (err2, row2) => {
+              if (err2 || !row2) return callback(null);
+              callback({
+                creditos: row.creditos,
+                cartones: row2.total,
+              });
+            }
+          );
+        }
+      );
+    });
+
+    socket.on("solicitarInfoPartida", (callback) => {
+      const partida = gameManager.obtenerPartidaActual();
+      if (typeof callback === "function") {
+        callback(partida || null);
+      }
+    });
+
     socket.on("comprarCartones", (cantidad, callback) => {
       const nombre = socket.usuario;
       if (!usuarios[nombre])
         return callback({ ok: false, error: "No autenticado" });
-
       db.get(
         `SELECT id_partida, valor_carton, fecha_hora_jugada FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
         [],
@@ -125,7 +150,6 @@ function registrarSockets(io) {
                 "Faltan menos de 5 segundos para iniciar, no se pueden comprar cartones.",
             });
           }
-
           db.get(
             `SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
             [nombre, partida.id_partida],
@@ -137,13 +161,11 @@ function registrarSockets(io) {
                   ok: false,
                   error: "Ya tienes 12 cartones para esta partida",
                 });
-
               if (cantidad > disponibles)
                 return callback({
                   ok: false,
                   error: `Solo puedes comprar ${disponibles} cartones más para esta partida`,
                 });
-
               const costo = cantidad * partida.valor_carton;
               if (usuarios[nombre].creditos < costo)
                 return callback({ ok: false, error: "Créditos insuficientes" });
@@ -199,6 +221,35 @@ function registrarSockets(io) {
             );
             socket.emit("recibirCartones", cartones);
           }
+        }
+      );
+    });
+
+    socket.on("unirseAPartidaActual", (callback) => {
+      if (!partidaEnJuego || !partidaActual) {
+        return callback({ partida: null });
+      }
+
+      const usuario = socket.usuario;
+      db.all(
+        `SELECT numero_carton, contenido FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
+        [usuario, partidaActual.id_partida],
+        (err, rows) => {
+          const cartones =
+            !err && rows.length > 0
+              ? rows.map((r) => ({
+                  numero: r.numero_carton,
+                  contenido: JSON.parse(r.contenido),
+                }))
+              : [];
+
+          const bolillas = gameManager.obtenerBolillasEmitidas(); // ✅
+
+          callback({
+            partida: partidaActual,
+            bolillas,
+            cartones,
+          });
         }
       );
     });

@@ -23,27 +23,42 @@ const WelcomePage = () => {
     navigate("/login");
   };
 
-  useEffect(() => {
-    fetch("http://localhost:3001/api/partida-proxima")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data) {
-          setTexto("No hay jugadas programadas por ahora.");
-          return;
-        }
+  const formatearMiles = (numero) => {
+    return new Intl.NumberFormat("es-AR").format(numero);
+  };
 
-        setPremios({
-          valorCarton: data.valorCarton,
-          premioLinea: data.premioLinea,
-          premioBingo: data.premioBingo,
-          premioAcumulado: data.premioAcumulado,
-        });
-        setFecha(data.fechaSorteo);
-      })
-      .catch((err) => {
-        console.error("❌ Error al cargar próxima partida:", err.message);
-        setTexto("No hay jugadas programadas por ahora.");
-      });
+  const cargarDatosPartida = (data, estaActiva) => {
+    setPremios({
+      valorCarton: data.valor_carton,
+      premioLinea: data.premio_linea,
+      premioBingo: data.premio_bingo,
+      premioAcumulado: data.premio_acumulado,
+    });
+    setFecha(data.fecha_hora_jugada);
+    if (estaActiva) {
+      setTexto("🎯 ¡La partida está en juego!");
+    }
+  };
+
+  useEffect(() => {
+    socket.emit("solicitarInfoPartida", (partidaActiva) => {
+      if (partidaActiva) {
+        cargarDatosPartida(partidaActiva, true);
+      } else {
+        fetch("http://localhost:3001/api/partida-proxima")
+          .then((res) => res.json())
+          .then((data) => {
+            if (!data) {
+              setTexto("No hay jugadas programadas por ahora.");
+              return;
+            }
+            cargarDatosPartida(data, false);
+          })
+          .catch(() => {
+            setTexto("No hay jugadas programadas por ahora.");
+          });
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -94,26 +109,34 @@ const WelcomePage = () => {
           </h2>
           <h2>
             VALOR DEL CARTÓN:{" "}
-            <span className="values">${premios.valorCarton}</span>
+            <span className="values">
+              ${formatearMiles(premios.valorCarton)}
+            </span>
           </h2>
           <h2>
             PREMIO DE LÍNEA:{" "}
-            <span className="values">${premios.premioLinea}</span>
+            <span className="values">
+              ${formatearMiles(premios.premioLinea)}
+            </span>
           </h2>
           <h2>
             PREMIO DE BINGO:{" "}
-            <span className="values">${premios.premioBingo}</span>
+            <span className="values">
+              ${formatearMiles(premios.premioBingo)}
+            </span>
           </h2>
           <h2>
             PREMIO ACUMULADO:{" "}
-            <span className="values">${premios.premioAcumulado}</span>
+            <span className="values">
+              ${formatearMiles(premios.premioAcumulado)}
+            </span>
           </h2>
         </div>
         <div className="user-info">
           {user?.creditos !== undefined && (
             <h2>
               CRÉDITOS DISPONIBLES:{" "}
-              <span className="values">${user.creditos}</span>
+              <span className="values">${formatearMiles(user.creditos)}</span>
             </h2>
           )}
           {cartones !== undefined && (
@@ -137,18 +160,52 @@ const WelcomePage = () => {
         </div>
         <h2>{texto}</h2>
         <div className="welco-btn-group">
-          <button className="btn">REGLAS</button>
-          <button className="btn">CRÉDITOS</button>
-          <button className="btn">COBRAR</button>
+          <button className="btn">COMO JUGAR</button>
+          <button className="btn">COMPRAR CRÉDITOS</button>
           <button
-            className="btn-play"
+            className="btn"
             onClick={() => {
               socket.emit("comprarCartones", cantidadCartones, (respuesta) => {
                 if (respuesta.ok) {
-                  navigate("/gameplay");
+                  alert(
+                    `🎟️ Compraste ${cantidadCartones} cartones correctamente`
+                  );
+                  setTimeout(() => {
+                    socket.emit("solicitarDatosUsuario", (datos) => {
+                      if (datos) {
+                        user.creditos = datos.creditos;
+                        setCartones(datos.cartones);
+                      }
+                    });
+                  }, 300);
                 } else {
                   alert("Error al comprar cartones: " + respuesta.error);
                 }
+              });
+            }}
+          >
+            COMPRAR CARTONES
+          </button>
+          <button
+            className="btn-play"
+            onClick={() => {
+              socket.emit("solicitarInfoPartida", (partida) => {
+                if (!partida) {
+                  alert("❌ No hay ninguna partida próxima por comenzar.");
+                  return;
+                }
+                const ahora = new Date();
+                const inicio = new Date(partida.fecha_hora_jugada);
+                const diferencia = (inicio - ahora) / 1000 / 60;
+                if (diferencia > 5) {
+                  alert(
+                    "⏳ Aún no se puede jugar. Faltan más de 5 minutos para la próxima partida."
+                  );
+                  return;
+                }
+                socket.emit("obtenerCartonesDisponibles");
+
+                navigate("/gameplay");
               });
             }}
           >

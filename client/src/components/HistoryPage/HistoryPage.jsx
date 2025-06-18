@@ -16,7 +16,6 @@ const HistoryPage = () => {
   }
 
   useEffect(() => {
-    // Obtener histórico de sorteos (HistorialSorteos)
     axios
       .get("http://localhost:3001/api/historial")
       .then((res) => {
@@ -32,22 +31,6 @@ const HistoryPage = () => {
         setError("No se pudo cargar el historial de sorteos.");
       });
   }, []);
-
-  const eliminarHistorial = async (id) => {
-    if (
-      !window.confirm(
-        "¿Seguro que quieres eliminar este registro de historial?"
-      )
-    ) {
-      return;
-    }
-    try {
-      await axios.delete(`http://localhost:3001/api/historial/${id}`);
-      setHistorial((prev) => prev.filter((h) => h.id !== id));
-    } catch (err) {
-      console.error("❌ Error al eliminar registro de historial:", err);
-    }
-  };
 
   const formatFechaHora = (isoString) => {
     if (!isoString) return "";
@@ -76,7 +59,6 @@ const HistoryPage = () => {
                 <th>Ganadores Línea</th>
                 <th>Ganadores Bingo</th>
                 <th>Ganadores Acumulado</th>
-                <th>🗑️</th>
               </tr>
             </thead>
             <tbody>
@@ -128,11 +110,7 @@ const HistoryPage = () => {
                           .map((g) => `${g.usuario} (#${g.numeroCarton})`)
                           .join("; ")}
                       </td>
-                      <td>
-                        <button onClick={() => eliminarHistorial(registro.id)}>
-                          🗑️
-                        </button>
-                      </td>
+                      <td></td>
                     </tr>
                   );
                 })

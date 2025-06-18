@@ -39,6 +39,10 @@ html {
   display: flex;
   flex-direction: column;
   align-items: center;
+  border-radius: 10px;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.4);
+  padding-bottom: 5px;
+  margin: -0.5rem 0 1rem;
 }
 
 .info-recuadro h1 {
@@ -112,14 +116,21 @@ html {
   border: none;
   border-radius: 8px;
   font-weight: bold;
-  box-shadow: 0 4px #00000050;
+  box-shadow: 0 3px #00000050;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
 
 .welco-btn-group button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px #00000070;
+  box-shadow: 0 5px #00000070;
+}
+
+.user-info {
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+  margin-top: -0.3rem;
+  padding: 10px 0;
 }
 
 select#cantidad-cartones {

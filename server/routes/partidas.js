@@ -24,8 +24,6 @@ router.get("/:id", (req, res) => {
   });
 });
 
-// Obtener la próxima partida pendiente
-
 // Crear nueva partida
 router.post("/", (req, res) => {
   const {

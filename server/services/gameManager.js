@@ -13,6 +13,7 @@ let usuarios = {};
 let usuariosConectados = {};
 let sorteoActivo = false;
 let partidaActualGlobal = null;
+let bolillasEmitidasGlobal = [];
 
 let acumuladoHabilitado = false;
 const topeAcumulado = 39;
@@ -44,11 +45,56 @@ function estaPartidaEnJuego() {
 }
 
 function obtenerBolillasEmitidas() {
-  return emitidas;
+  return bolillasEmitidasGlobal;
 }
 
 function obtenerPartidaActual() {
   return partidaActualGlobal;
+}
+
+function obtenerBolillasEmitidas() {
+  return bolillasEmitidasGlobal;
+}
+
+function iniciarLimpiezaAutomatica() {
+  setInterval(() => {
+    const ahora = new Date().toISOString();
+
+    db.all(
+      `SELECT id_partida, estado, fecha_hora_jugada 
+       FROM Partidas 
+       WHERE (estado = 'pendiente' OR estado = 'activa') 
+       AND fecha_hora_jugada < ?`,
+      [ahora],
+      (err, partidasVencidas) => {
+        if (err) {
+          console.error("❌ Error al buscar partidas vencidas:", err.message);
+          return;
+        }
+
+        if (!partidasVencidas || partidasVencidas.length === 0) return;
+
+        partidasVencidas.forEach((partida) => {
+          db.run(
+            `UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?`,
+            [partida.id_partida],
+            (err2) => {
+              if (err2) {
+                console.error(
+                  `❌ Error al expirar partida ${partida.id_partida}:`,
+                  err2.message
+                );
+              } else {
+                console.log(
+                  `⏱️ Partida ${partida.id_partida} (${partida.estado}) marcada como expirada por inactividad.`
+                );
+              }
+            }
+          );
+        });
+      }
+    );
+  }, 60 * 1000); // cada 60 segundos
 }
 
 function iniciarSorteo(io, partida) {
@@ -59,111 +105,150 @@ function iniciarSorteo(io, partida) {
   partidaActual = partida;
   partidaActualGlobal = partida;
   sorteoActivo = true;
-
   const index = Math.floor(Math.random() * combinaciones.length);
   setCombinacion(combinaciones[index], index);
 
-  if (!combinacionGlobal || !Array.isArray(combinacionGlobal)) {
-    console.warn("⚠️ No hay combinación de bolillas disponible");
+  if (!Array.isArray(combinacionGlobal)) {
+    console.warn(
+      "⚠️ No hay combinación de bolillas disponible:",
+      combinacionGlobal
+    );
     return;
   }
 
-  let bolillas = [...combinacionGlobal];
-  let emitidas = [];
-  let indice = 0;
-  let lineaCantada = false;
-  let ganadoresLinea = [];
-  let ganadoresBingo = [];
-  let ganadoresAcumulado = [];
+  db.all(
+    `SELECT usuario, numero_carton, contenido FROM CartonesAsignados WHERE id_partida = ?`,
+    [partida.id_partida],
+    (err, rows) => {
+      if (err) {
+        console.error("❌ Error al cargar cartones:", err.message);
+        return;
+      }
+      usuariosCartones = {};
+      const todosLosCartones = [];
+      rows.forEach((row) => {
+        const contenidoPlano = JSON.parse(row.contenido).flat();
+        const carton = {
+          numeroCarton: row.numero_carton,
+          contenido: contenidoPlano,
+        };
+        if (!usuariosCartones[row.usuario]) {
+          usuariosCartones[row.usuario] = [];
+        }
+        usuariosCartones[row.usuario].push(carton);
+        todosLosCartones.push(carton.contenido);
+      });
 
-  const intervalo = setInterval(() => {
-    if (indice >= bolillas.length) {
-      clearInterval(intervalo);
-      finalizar();
-      return;
+      const cartonesJugadosPlano = todosLosCartones;
+      iniciarProcesoSorteo(io, partida, cartonesJugadosPlano);
     }
+  );
 
-    const bolilla = bolillas[indice++];
-    emitidas.push(bolilla);
-    io.emit("nuevaBolilla", bolilla);
-    console.log("⚪ Bolilla emitida:", bolilla);
+  function iniciarProcesoSorteo(io, partida, cartonesJugadosPlano) {
+    let bolillas = [...combinacionGlobal];
+    let indice = 0;
+    let lineaCantada = false;
+    let ganadoresLinea = [];
+    let ganadoresBingo = [];
+    let ganadoresAcumulado = [];
+    bolillasEmitidasGlobal = [];
 
-    if (!lineaCantada) {
-      for (const [usuario, cartones] of Object.entries(usuariosCartones)) {
-        for (const carton of cartones) {
-          for (let f = 0; f < 3; f++) {
-            const fila = carton.slice(f * 9, f * 9 + 9).filter((n) => n !== 0);
-            const aciertos = fila.filter((n) => emitidas.includes(n));
-            if (aciertos.length === 5) {
-              lineaCantada = true;
-              ganadoresLinea.push({ usuario });
-              io.emit("ganadoresLinea", ganadoresLinea);
-              break;
+    const intervalo = setInterval(() => {
+      if (indice >= bolillas.length) {
+        clearInterval(intervalo);
+        finalizar();
+        return;
+      }
+
+      const bolilla = bolillas[indice++];
+      bolillasEmitidasGlobal.push(bolilla);
+      io.emit("nuevaBolilla", bolilla);
+      console.log("⚪ Bolilla emitida:", bolilla);
+
+      if (!lineaCantada) {
+        for (const [usuario, cartones] of Object.entries(usuariosCartones)) {
+          for (const { contenido, numeroCarton } of cartones) {
+            for (let f = 0; f < 3; f++) {
+              const fila = contenido
+                .slice(f * 9, (f + 1) * 9)
+                .filter((n) => n !== 0);
+              const aciertos = fila.filter((n) =>
+                bolillasEmitidasGlobal.includes(n)
+              );
+              if (aciertos.length === 5) {
+                lineaCantada = true;
+                ganadoresLinea.push({ usuario, numeroCarton });
+                io.emit("ganadoresLinea", ganadoresLinea);
+                break;
+              }
             }
           }
         }
       }
-    }
 
-    for (const [usuario, cartones] of Object.entries(usuariosCartones)) {
-      for (const carton of cartones) {
-        const llenos = carton.filter((n) => n !== 0 && emitidas.includes(n));
-        if (llenos.length === 15) {
-          ganadoresBingo.push({ usuario });
-
-          if (emitidas.length <= topeAcumulado && acumuladoHabilitado) {
-            ganadoresAcumulado.push({ usuario });
-            io.emit("ganadoresAcumulado", ganadoresAcumulado);
+      for (const [usuario, cartones] of Object.entries(usuariosCartones)) {
+        for (const { contenido, numeroCarton } of cartones) {
+          const llenos = contenido.filter(
+            (n) => n !== 0 && bolillasEmitidasGlobal.includes(n)
+          );
+          if (llenos.length === 15) {
+            ganadoresBingo.push({ usuario, numeroCarton });
+            if (
+              bolillasEmitidasGlobal.length <= topeAcumulado &&
+              acumuladoHabilitado
+            ) {
+              ganadoresAcumulado.push({ usuario, numeroCarton });
+              io.emit("ganadoresAcumulado", ganadoresAcumulado);
+            }
+            io.emit("ganadoresBingo", ganadoresBingo);
+            clearInterval(intervalo);
+            setTimeout(finalizar, 3000);
+            return;
           }
-
-          io.emit("ganadoresBingo", ganadoresBingo);
-          clearInterval(intervalo);
-          setTimeout(finalizar, 3000);
-          return;
         }
       }
+    }, 4000);
+
+    function finalizar() {
+      console.log("✅ Sorteo finalizado.");
+      partidaEnJuego = false;
+      sorteoActivo = false;
+      io.emit("finSorteo");
+
+      db.run("UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?", [
+        partida.id_partida,
+      ]);
+
+      db.run("DELETE FROM CartonesAsignados WHERE id_partida = ?", [
+        partida.id_partida,
+      ]);
+
+      db.run(
+        `INSERT INTO HistorialSorteos 
+         (fecha_hora, hora_sorteo, bolillas, cartones_jugados, ganadores_linea, ganadores_bingo, ganadores_acumulado)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          new Date().toISOString(),
+          new Date().toTimeString().slice(0, 5),
+          JSON.stringify(bolillasEmitidasGlobal),
+          JSON.stringify(
+            Object.values(usuariosCartones)
+              .flat()
+              .map((c) => aplanarCarton(c))
+          ),
+          JSON.stringify(ganadoresLinea),
+          JSON.stringify(ganadoresBingo),
+          JSON.stringify(ganadoresAcumulado),
+        ],
+        (err) => {
+          if (err) {
+            console.error("❌ Error al registrar historial:", err.message);
+          } else {
+            console.log("📝 Historial registrado correctamente.");
+          }
+        }
+      );
     }
-  }, 4000);
-
-  function finalizar() {
-    console.log("✅ Sorteo finalizado.");
-    partidaEnJuego = false;
-    sorteoActivo = false;
-
-    io.emit("finSorteo");
-
-    db.run("UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?", [
-      partida.id_partida,
-    ]);
-
-    db.run(`DELETE FROM CartonesAsignados WHERE id_partida = ?`, [
-      partida.id_partida,
-    ]);
-
-    db.run(
-      `INSERT INTO HistorialSorteos 
-       (fecha_hora, bolillas, cartones_jugados, ganadores_linea, ganadores_bingo, ganadores_acumulado)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        new Date().toISOString(),
-        JSON.stringify(emitidas),
-        JSON.stringify(
-          Object.values(usuariosCartones)
-            .flat()
-            .map((c) => aplanarCarton(c))
-        ),
-        JSON.stringify(ganadoresLinea),
-        JSON.stringify(ganadoresBingo),
-        JSON.stringify(ganadoresAcumulado),
-      ],
-      (err) => {
-        if (err) {
-          console.error("❌ Error al registrar historial:", err.message);
-        } else {
-          console.log("📝 Historial registrado correctamente.");
-        }
-      }
-    );
   }
 }
 
@@ -176,4 +261,6 @@ module.exports = {
   estaPartidaEnJuego,
   obtenerBolillasEmitidas,
   obtenerPartidaActual,
+  partidaActualGlobal,
+  iniciarLimpiezaAutomatica,
 };

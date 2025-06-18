@@ -45,7 +45,6 @@ const GamePlay = () => {
   const { user } = useAuth();
   const socket = useContext(SocketContext);
   const navigate = useNavigate();
-
   const [soundOn, setSoundOn] = useState(true);
   const [cartones, setCartones] = useState([]);
   const [bolillaActual, setBolillaActual] = useState(null);
@@ -57,20 +56,17 @@ const GamePlay = () => {
   const [premioLinea, setPremioLinea] = useState(0);
   const [premioBingo, setPremioBingo] = useState(0);
   const [drawnNumbers, setDrawnNumbers] = useState([]);
+  const [modoEspectador, setModoEspectador] = useState(false);
+  const [partida, setPartida] = useState(null);
 
   const cartonesRef = useRef([]);
   const marcadasCartonesRef = useRef([]);
-
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
 
   const handleNewBolilla = useCallback(
     (num) => {
       setBolillaActual(num);
       setContador((prev) => prev + 1);
       setDrawnNumbers((prev) => [...prev, num]);
-
       cartonesRef.current.forEach((carton) => {
         if (Array.isArray(carton)) {
           carton.forEach((fila) => {
@@ -86,7 +82,6 @@ const GamePlay = () => {
           });
         }
       });
-
       if (soundOn) {
         const padded = String(num).padStart(2, "0");
         const audioFileName = `${padded}.mp3`;
@@ -103,46 +98,55 @@ const GamePlay = () => {
     [soundOn]
   );
 
-  useEffect(() => {
-    const bolillasGuardadas = JSON.parse(
-      localStorage.getItem("bolillasEmitidas")
-    );
-    if (Array.isArray(bolillasGuardadas)) {
-      setBolillas(bolillasGuardadas);
-    }
-
-    socket.on("estadoActual", ({ bolillasEmitidas }) => {
-      setBolillas(bolillasEmitidas);
-      localStorage.setItem(
-        "bolillasEmitidas",
-        JSON.stringify(bolillasEmitidas)
-      );
-    });
-
-    socket.on("nuevaBolilla", (bolilla) => {
-      setBolillas((prev) => {
-        const actualizadas = [...prev, bolilla];
-        localStorage.setItem("bolillasEmitidas", JSON.stringify(actualizadas));
-        return actualizadas;
-      });
-    });
-
-    socket.on("finSorteo", () => {
-      setBolillas([]);
-      localStorage.removeItem("bolillasEmitidas");
-    });
-
-    return () => {
-      socket.off("estadoActual");
-      socket.off("nuevaBolilla");
-      socket.off("finSorteo");
-    };
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
   }, []);
 
   useEffect(() => {
-    if (!socket || !user?.username) return;
+    socket.emit("unirseAPartidaActual", (data) => {
+      if (!data.partida) {
+        setModoEspectador(true);
+        return;
+      }
 
-    // Restaurar cartones desde localStorage si existen
+      setPartida(data.partida);
+      setDrawnNumbers(data.bolillas || []);
+      setCartones(data.cartones || []);
+      cartonesRef.current = data.cartones || [];
+
+      marcadasCartonesRef.current = [];
+      if (Array.isArray(data.bolillas)) {
+        data.cartones?.forEach((carton) => {
+          data.bolillas.forEach((n) => {
+            if (carton.includes(n)) {
+              marcadasCartonesRef.current.push(n);
+            }
+          });
+        });
+        const ultima = data.bolillas.at(-1);
+        if (ultima) {
+          setBolillaActual(ultima);
+          setContador(data.bolillas.length);
+        }
+      }
+
+      setModoEspectador(!data.cartones || data.cartones.length === 0);
+    });
+  }, []);
+
+  useEffect(() => {
+    socket.on("nuevaBolilla", handleNewBolilla);
+    socket.on("finSorteo", () => {
+      setDrawnNumbers([]);
+    });
+    return () => {
+      socket.off("nuevaBolilla", handleNewBolilla);
+      socket.off("finSorteo");
+    };
+  }, [handleNewBolilla, socket]);
+
+  useEffect(() => {
+    if (!socket || !user?.username) return;
     const guardados = localStorage.getItem("cartonesUsuario");
     if (guardados) {
       try {
@@ -156,8 +160,6 @@ const GamePlay = () => {
         console.warn("⚠️ Error al parsear cartones guardados:", e);
       }
     }
-
-    // Solicitar cartones actualizados al servidor
     socket.emit("obtenerCartonesAsignados");
     socket.emit("solicitarInfoPartida");
 
@@ -259,22 +261,13 @@ const GamePlay = () => {
               <strong>BOLA:</strong> {contador}
             </p>
             <p>
-              <strong>ACUMULADO:</strong>{" "}
-              {typeof acumulado === "number"
-                ? acumulado.toLocaleString("es-AR")
-                : "-"}
+              <strong>ACUMULADO:</strong> ${acumulado.toLocaleString("es-AR")}
             </p>
             <p>
-              <strong>LÍNEA:</strong>{" "}
-              {typeof acumulado === "number"
-                ? premioLinea.toLocaleString("es-AR")
-                : "-"}
+              <strong>LÍNEA:</strong> ${premioLinea.toLocaleString("es-AR")}
             </p>
             <p>
-              <strong>BINGO:</strong>{" "}
-              {typeof acumulado === "number"
-                ? premioBingo.toLocaleString("es-AR")
-                : "-"}
+              <strong>BINGO:</strong> ${premioBingo.toLocaleString("es-AR")}
             </p>
           </div>
           <div className="zona-centro">
@@ -282,12 +275,7 @@ const GamePlay = () => {
               {bolillaActual ? (
                 (() => {
                   const padded = String(bolillaActual).padStart(2, "0");
-                  let srcImg = defaultImage;
-                  if (bolillaImages[`${padded}.png`]) {
-                    srcImg = bolillaImages[`${padded}.png`];
-                  } else if (bolillaImages[`${padded}.jpg`]) {
-                    srcImg = bolillaImages[`${padded}.jpg`];
-                  }
+                  const srcImg = bolillaImages[`${padded}.png`] || defaultImage;
                   return (
                     <img
                       src={srcImg}
@@ -323,7 +311,6 @@ const GamePlay = () => {
             </div>
           </div>
         </div>
-
         {modalPremio && (
           <div className="modal-premio">
             <div className="modal-contenido">
@@ -341,32 +328,21 @@ const GamePlay = () => {
         )}
       </div>
       <h2 className="aviso">YA COMIENZA</h2>
-      <div className="zona-cartones">
+      <div
+        className="zona-cartones"
+        style={{ maxHeight: "400px", overflowY: "auto" }}
+      >
+        {modoEspectador && (
+          <div className="modo-espectador">
+            🔍 Estás viendo la partida como espectador.
+          </div>
+        )}
+        {!modoEspectador && cartones.length > 0 && <h3>Tus cartones:</h3>}
         {cartones.map((carton, idxCarton) => {
-          let plano = [];
-
-          if (Array.isArray(carton)) {
-            plano = carton;
-          } else if (typeof carton === "string") {
-            try {
-              const parsed = JSON.parse(carton);
-              if (Array.isArray(parsed)) plano = parsed;
-            } catch (err) {
-              console.warn("⚠️ Cartón inválido:", carton);
-            }
-          } else {
-            console.warn("⚠️ Cartón no procesable:", carton);
-          }
-
-          if (plano.length !== 27) {
-            console.warn("⚠️ Cartón con longitud incorrecta:", plano);
-            return null;
-          }
-
+          if (!Array.isArray(carton) || carton.length !== 27) return null;
           const filas = Array.from({ length: 3 }, (_, i) =>
-            plano.slice(i * 9, (i + 1) * 9)
+            carton.slice(i * 9, (i + 1) * 9)
           );
-
           return (
             <div key={idxCarton} className="carton">
               {filas.map((fila, idxFila) =>
@@ -387,6 +363,7 @@ const GamePlay = () => {
           );
         })}
       </div>
+
       <div className="btn-group">
         <button onClick={() => setSoundOn((prev) => !prev)}>
           SONIDO: {soundOn ? "SI" : "NO"}

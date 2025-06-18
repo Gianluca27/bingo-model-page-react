@@ -29,36 +29,52 @@ const WelcomePage = () => {
 
   const cargarDatosPartida = (data, estaActiva) => {
     setPremios({
-      valorCarton: data.valor_carton,
-      premioLinea: data.premio_linea,
-      premioBingo: data.premio_bingo,
-      premioAcumulado: data.premio_acumulado,
+      valorCarton: data.valorCarton ?? data.valor_carton,
+      premioLinea: data.premioLinea ?? data.premio_linea,
+      premioBingo: data.premioBingo ?? data.premio_bingo,
+      premioAcumulado: data.premioAcumulado ?? data.premio_acumulado,
     });
-    setFecha(data.fecha_hora_jugada);
+    setFecha(data.fechaSorteo ?? data.fecha_hora_jugada);
+
     if (estaActiva) {
       setTexto("🎯 ¡La partida está en juego!");
+    } else {
+      setTexto("");
     }
   };
 
   useEffect(() => {
-    socket.emit("solicitarInfoPartida", (partidaActiva) => {
-      if (partidaActiva) {
-        cargarDatosPartida(partidaActiva, true);
+    const cargarDatosPartida = (data, estaActiva) => {
+      setPremios({
+        valorCarton: data.valorCarton,
+        premioLinea: data.premioLinea,
+        premioBingo: data.premioBingo,
+        premioAcumulado: data.premioAcumulado,
+      });
+      setFecha(data.fechaSorteo);
+      if (estaActiva) {
+        setTexto("🎯 ¡La partida está en juego!");
       } else {
-        fetch("http://localhost:3001/api/partida-proxima")
-          .then((res) => res.json())
-          .then((data) => {
-            if (!data) {
-              setTexto("No hay jugadas programadas por ahora.");
-              return;
-            }
-            cargarDatosPartida(data, false);
-          })
-          .catch(() => {
-            setTexto("No hay jugadas programadas por ahora.");
-          });
+        setTexto(""); // o cualquier otro mensaje por defecto
       }
-    });
+    };
+
+    const obtenerPartidaVisible = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/partida-visible");
+        const data = await res.json();
+        if (!data) {
+          setTexto("No hay jugadas programadas por ahora.");
+          return;
+        }
+        cargarDatosPartida(data, data.estado === "activa");
+      } catch (err) {
+        console.error("❌ Error al cargar partida visible:", err.message);
+        setTexto("No hay jugadas programadas por ahora.");
+      }
+    };
+
+    obtenerPartidaVisible();
   }, []);
 
   useEffect(() => {

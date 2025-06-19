@@ -220,6 +220,5 @@ module.exports = {
   setCombinacion,
   estaPartidaEnJuego,
   obtenerBolillasEmitidas,
-  obtenerPartidaActual,
-  partidaActualGlobal,
+  obtenerPartidaActual: () => partidaActual,
 };

@@ -145,12 +145,12 @@ function registrarSockets(io) {
     });
 
     socket.on("solicitarInfoPartida", (callback) => {
-      if (typeof callback !== "function") return;
-
       const partidaActiva = gameManager.obtenerPartidaActual();
 
       if (partidaActiva && partidaActiva.estado === "activa") {
-        return callback(partidaActiva);
+        if (typeof callback === "function") {
+          return callback(partidaActiva);
+        }
       }
 
       db.get(
@@ -160,6 +160,7 @@ function registrarSockets(io) {
          LIMIT 1`,
         [],
         (err, partidaPendiente) => {
+          if (typeof callback !== "function") return;
           if (err || !partidaPendiente) return callback(null);
           callback(partidaPendiente);
         }

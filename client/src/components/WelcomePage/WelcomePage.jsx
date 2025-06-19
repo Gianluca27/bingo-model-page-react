@@ -222,23 +222,29 @@ const WelcomePage = () => {
                   alert("❌ No hay ninguna partida próxima por comenzar.");
                   return;
                 }
+
                 const ahora = new Date();
                 const inicio = new Date(partida.fecha_hora_jugada);
-                const diferenciaMin = (inicio - ahora) / 1000 / 60;
-                if (partida.estado === "activa") {
+                const diferenciaMs = inicio - ahora;
+
+                const partidaYaComenzo = diferenciaMs <= 0;
+                const dentroDeLos5Min =
+                  diferenciaMs <= 5 * 60 * 1000 && diferenciaMs > 0;
+
+                if (
+                  partida.estado === "activa" ||
+                  partidaYaComenzo ||
+                  dentroDeLos5Min
+                ) {
                   socket.emit("obtenerCartonesDisponibles");
                   navigate("/gameplay");
                   return;
                 }
-                if (diferenciaMin <= 5) {
-                  socket.emit("obtenerCartonesDisponibles");
-                  navigate("/gameplay");
-                  return;
-                }
+
                 alert(
                   `⏳ Aún no se puede ingresar. La partida comienza a las ${formatFecha(
                     partida.fecha_hora_jugada
-                  )} HS`
+                  )} HS. Volvelo a intentar cuando falten 5 minutos para que comience.`
                 );
               });
             }}

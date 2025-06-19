@@ -128,10 +128,22 @@ function registrarSockets(io) {
     });
 
     socket.on("solicitarInfoPartida", (callback) => {
-      const partida = gameManager.obtenerPartidaActual();
-      if (typeof callback === "function") {
-        callback(partida || null);
+      const partidaActiva = gameManager.obtenerPartidaActual();
+
+      if (partidaActiva && partidaActiva.estado === "activa") {
+        if (typeof callback === "function") callback(partidaActiva);
+        return;
       }
+
+      db.get(
+        `SELECT * FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
+        [],
+        (err, partidaPendiente) => {
+          if (typeof callback !== "function") return;
+          if (err || !partidaPendiente) return callback(null);
+          callback(partidaPendiente);
+        }
+      );
     });
 
     socket.on("comprarCartones", (cantidad, callback) => {

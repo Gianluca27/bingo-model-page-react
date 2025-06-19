@@ -172,6 +172,7 @@ function iniciarSorteo(io, partida) {
       console.log("✅ Sorteo finalizado.");
       partidaEnJuego = false;
       sorteoActivo = false;
+      partidaActualGlobal = null;
       io.emit("finSorteo");
 
       db.run("UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?", [

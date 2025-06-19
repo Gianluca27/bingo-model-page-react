@@ -6,6 +6,7 @@ import SocketContext from "../../services/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
 import { formatFecha } from "../../utils/formatDate";
+import axios from "axios";
 
 const WelcomePage = () => {
   const socket = useContext(SocketContext);
@@ -17,6 +18,7 @@ const WelcomePage = () => {
   const [cantidadCartones, setCantidadCartones] = useState(1);
   const [cartones, setCartones] = useState(0);
   const navigate = useNavigate();
+  const [partidaVisible, setPartidaVisible] = useState(null);
 
   const handleLogout = async () => {
     await logout();
@@ -27,43 +29,52 @@ const WelcomePage = () => {
     return new Intl.NumberFormat("es-AR").format(numero);
   };
 
-  const cargarDatosPartida = (data, estaActiva) => {
-    setPremios({
-      valorCarton: data.valorCarton ?? data.valor_carton,
-      premioLinea: data.premioLinea ?? data.premio_linea,
-      premioBingo: data.premioBingo ?? data.premio_bingo,
-      premioAcumulado: data.premioAcumulado ?? data.premio_acumulado,
-    });
+  useEffect(() => {
+    const obtenerPartidas = async () => {
+      const res = await axios.get("http://localhost:3001/api/partidas");
+      const data = res.data;
 
-    setFecha(data.fechaSorteo ?? data.fecha_hora_jugada);
-    setTexto(estaActiva ? "🎯 ¡La partida está en juego!" : "");
-  };
+      const activa = data.find((p) => p.estado === "activa");
+      if (activa) {
+        setPartidaVisible(activa);
+        return;
+      }
+
+      const pendientes = data
+        .filter((p) => p.estado === "pendiente")
+        .sort(
+          (a, b) =>
+            new Date(a.fecha_hora_jugada) - new Date(b.fecha_hora_jugada)
+        );
+
+      if (pendientes.length > 0) {
+        setPartidaVisible(pendientes[0]);
+      }
+    };
+
+    obtenerPartidas();
+  }, []);
 
   useEffect(() => {
-    if (!socket) return;
-
-    const handlerEstadoActual = (data) => {
-      cargarDatosPartida(data, true);
+    const actualizarPartida = (datosActualizados) => {
+      if (
+        partidaVisible &&
+        datosActualizados.id_partida === partidaVisible.id_partida
+      ) {
+        setPartidaVisible(datosActualizados);
+      }
     };
 
-    const handlerProximaPartida = (data) => {
-      cargarDatosPartida(data, false);
-    };
-
-    const handlerFinSorteo = (data) => {
-      cargarDatosPartida(data, false);
-    };
-
-    socket.on("estadoActual", handlerEstadoActual);
-    socket.on("proximaPartida", handlerProximaPartida);
-    socket.on("finSorteo", handlerFinSorteo);
+    socket.on("actualizarPartida", actualizarPartida);
+    socket.on("finSorteo", () => {
+      setPartidaVisible(null);
+    });
 
     return () => {
-      socket.off("estadoActual", handlerEstadoActual);
-      socket.off("proximaPartida", handlerProximaPartida);
-      socket.off("finSorteo", handlerFinSorteo);
+      socket.off("actualizarPartida", actualizarPartida);
+      socket.off("finSorteo");
     };
-  }, [socket]);
+  }, [socket, partidaVisible]);
 
   useEffect(() => {
     const handler = (mensaje) => setMensajeGlobal(mensaje);
@@ -107,35 +118,45 @@ const WelcomePage = () => {
             </span>
             a BINGOManiaMia!
           </h1>
-          <h3>{texto}</h3>
-          <h2>
-            FECHA DEL PRÓXIMO SORTEO:{" "}
-            <span className="values">{formatFecha(fecha)}HS</span>
-          </h2>
-          <h2>
-            VALOR DEL CARTÓN:{" "}
-            <span className="values">
-              ${formatearMiles(premios.valorCarton)}
-            </span>
-          </h2>
-          <h2>
-            PREMIO DE LÍNEA:{" "}
-            <span className="values">
-              ${formatearMiles(premios.premioLinea)}
-            </span>
-          </h2>
-          <h2>
-            PREMIO DE BINGO:{" "}
-            <span className="values">
-              ${formatearMiles(premios.premioBingo)}
-            </span>
-          </h2>
-          <h2>
-            PREMIO ACUMULADO:{" "}
-            <span className="values">
-              ${formatearMiles(premios.premioAcumulado)}
-            </span>
-          </h2>
+          {partidaVisible?.estado === "activa" && (
+            <>
+              <p className="blinking">🎯 ¡Partida en juego!</p>
+            </>
+          )}
+          {partidaVisible && (
+            <>
+              <h2>
+                FECHA DEL PRÓXIMO SORTEO:{" "}
+                <span className="values">
+                  {formatFecha(partidaVisible.fecha_hora_jugada)}HS
+                </span>
+              </h2>
+              <h2>
+                VALOR DEL CARTÓN:{" "}
+                <span className="values">
+                  ${formatearMiles(partidaVisible.valor_carton)}
+                </span>
+              </h2>
+              <h2>
+                PREMIO DE LÍNEA:{" "}
+                <span className="values">
+                  ${formatearMiles(partidaVisible.premio_linea)}
+                </span>
+              </h2>
+              <h2>
+                PREMIO DE BINGO:{" "}
+                <span className="values">
+                  ${formatearMiles(partidaVisible.premio_bingo)}
+                </span>
+              </h2>
+              <h2>
+                PREMIO ACUMULADO:{" "}
+                <span className="values">
+                  ${formatearMiles(partidaVisible.premio_acumulado)}
+                </span>
+              </h2>
+            </>
+          )}
         </div>
         <div className="user-info">
           {user?.creditos !== undefined && (
@@ -163,6 +184,7 @@ const WelcomePage = () => {
             ))}
           </select>
         </div>
+        <h2>{texto}</h2>
         <div className="welco-btn-group">
           <button className="btn">COMO JUGAR</button>
           <button className="btn">COMPRAR CRÉDITOS</button>
@@ -198,17 +220,27 @@ const WelcomePage = () => {
                   alert("❌ No hay ninguna partida próxima por comenzar.");
                   return;
                 }
+
+                console.log("Partida recibida:", partida);
+
                 const ahora = new Date();
                 const inicio = new Date(partida.fecha_hora_jugada);
                 const diferencia = (inicio - ahora) / 1000 / 60;
-                if (diferencia > 5) {
+
+                const puedeEntrar =
+                  partida.estado === "activa" ||
+                  (diferencia <= 5 && diferencia >= -2);
+
+                if (!puedeEntrar) {
                   alert(
-                    "⏳ Aún no se puede jugar. Faltan más de 5 minutos para la próxima partida."
+                    `⏳ No se puede ingresar todavía. La partida inicia a las ${formatFecha(
+                      partida.fecha_hora_jugada
+                    )} HS`
                   );
                   return;
                 }
-                socket.emit("obtenerCartonesDisponibles");
 
+                socket.emit("obtenerCartonesDisponibles");
                 navigate("/gameplay");
               });
             }}

@@ -143,6 +143,20 @@ select#cantidad-cartones {
   font-size: 1rem;
 }
 
+.blinking {
+  color: red;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
 @keyframes blink {
   0% {
     opacity: 1;

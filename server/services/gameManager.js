@@ -12,7 +12,6 @@ let usuariosCartones = {};
 let usuarios = {};
 let usuariosConectados = {};
 let sorteoActivo = false;
-let partidaActualGlobal = null;
 let bolillasEmitidasGlobal = [];
 
 let acumuladoHabilitado = false;
@@ -49,7 +48,7 @@ function obtenerBolillasEmitidas() {
 }
 
 function obtenerPartidaActual() {
-  return partidaActualGlobal;
+  return partidaActual;
 }
 
 function obtenerBolillasEmitidas() {
@@ -61,9 +60,8 @@ function iniciarSorteo(io, partida) {
 
   console.log("🎯 Iniciando sorteo de partida:", partida);
   partidaEnJuego = true;
-  partidaActual = partida;
-  partidaActualGlobal = partida;
   sorteoActivo = true;
+  partidaActual = { ...partida, estado: "activa" }; // usamos partidaActual como única fuente de verdad
   const index = Math.floor(Math.random() * combinaciones.length);
   setCombinacion(combinaciones[index], index);
 
@@ -83,8 +81,10 @@ function iniciarSorteo(io, partida) {
         console.error("❌ Error al cargar cartones:", err.message);
         return;
       }
+
       usuariosCartones = {};
       const todosLosCartones = [];
+
       rows.forEach((row) => {
         const contenidoPlano = JSON.parse(row.contenido).flat();
         const carton = {
@@ -98,8 +98,7 @@ function iniciarSorteo(io, partida) {
         todosLosCartones.push(carton.contenido);
       });
 
-      const cartonesJugadosPlano = todosLosCartones;
-      iniciarProcesoSorteo(io, partida, cartonesJugadosPlano);
+      iniciarProcesoSorteo(io, partida, todosLosCartones);
     }
   );
 
@@ -172,7 +171,6 @@ function iniciarSorteo(io, partida) {
       console.log("✅ Sorteo finalizado.");
       partidaEnJuego = false;
       sorteoActivo = false;
-      partidaActualGlobal = null;
       io.emit("finSorteo");
 
       db.run("UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?", [
@@ -191,11 +189,7 @@ function iniciarSorteo(io, partida) {
           new Date().toISOString(),
           new Date().toTimeString().slice(0, 5),
           JSON.stringify(bolillasEmitidasGlobal),
-          JSON.stringify(
-            Object.values(usuariosCartones)
-              .flat()
-              .map((c) => aplanarCarton(c))
-          ),
+          JSON.stringify(cartonesJugadosPlano),
           JSON.stringify(ganadoresLinea),
           JSON.stringify(ganadoresBingo),
           JSON.stringify(ganadoresAcumulado),

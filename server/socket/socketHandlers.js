@@ -138,79 +138,83 @@ function registrarSockets(io) {
       const nombre = socket.usuario;
       if (!usuarios[nombre])
         return callback({ ok: false, error: "No autenticado" });
+
+      const partida = gameManager.obtenerPartidaActual();
+      if (!partida)
+        return callback({ ok: false, error: "No hay partida disponible" });
+
+      const ahora = new Date();
+      const fechaInicio = new Date(partida.fecha_hora_jugada);
+      const diferenciaMs = fechaInicio - ahora;
+
+      // 🚫 Bloqueos por estado y tiempo
+      if (partida.estado === "activa") {
+        return callback({
+          ok: false,
+          error: "La partida ya comenzó. No se pueden comprar cartones.",
+        });
+      }
+
+      if (diferenciaMs <= 5000) {
+        return callback({
+          ok: false,
+          error:
+            "Faltan menos de 5 segundos para iniciar. Ya no se pueden comprar cartones.",
+        });
+      }
+
+      // ✅ Continuar con lógica de compra
       db.get(
-        `SELECT id_partida, valor_carton, fecha_hora_jugada FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
-        [],
-        (err, partida) => {
-          if (err || !partida)
-            return callback({ ok: false, error: "No hay partida disponible" });
-
-          const horaActual = new Date();
-          const fechaPartida = new Date(partida.fecha_hora_jugada);
-          const diffMs = fechaPartida - horaActual;
-
-          if (diffMs <= 5000) {
+        `SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
+        [nombre, partida.id_partida],
+        (err2, row) => {
+          const actuales = row?.total || 0;
+          const disponibles = 12 - actuales;
+          if (disponibles <= 0)
             return callback({
               ok: false,
-              error:
-                "Faltan menos de 5 segundos para iniciar, no se pueden comprar cartones.",
+              error: "Ya tienes 12 cartones para esta partida",
             });
-          }
-          db.get(
-            `SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
-            [nombre, partida.id_partida],
-            (err2, row) => {
-              const actuales = row?.total || 0;
-              const disponibles = 12 - actuales;
-              if (disponibles <= 0)
-                return callback({
-                  ok: false,
-                  error: "Ya tienes 12 cartones para esta partida",
-                });
-              if (cantidad > disponibles)
-                return callback({
-                  ok: false,
-                  error: `Solo puedes comprar ${disponibles} cartones más para esta partida`,
-                });
-              const costo = cantidad * partida.valor_carton;
-              if (usuarios[nombre].creditos < costo)
-                return callback({ ok: false, error: "Créditos insuficientes" });
+          if (cantidad > disponibles)
+            return callback({
+              ok: false,
+              error: `Solo puedes comprar ${disponibles} cartones más para esta partida`,
+            });
+          const costo = cantidad * partida.valor_carton;
+          if (usuarios[nombre].creditos < costo)
+            return callback({ ok: false, error: "Créditos insuficientes" });
 
-              usuarios[nombre].creditos -= costo;
-              db.run("UPDATE Usuarios SET creditos = ? WHERE usuario = ?", [
-                usuarios[nombre].creditos,
-                nombre,
-              ]);
+          usuarios[nombre].creditos -= costo;
+          db.run("UPDATE Usuarios SET creditos = ? WHERE usuario = ?", [
+            usuarios[nombre].creditos,
+            nombre,
+          ]);
 
-              generarCartonesEnLote(cantidad, (nuevosCartones) => {
-                const ahora = new Date().toISOString();
+          generarCartonesEnLote(cantidad, (nuevosCartones) => {
+            const ahoraISO = new Date().toISOString();
 
-                nuevosCartones.forEach(({ numero, contenido }) => {
-                  db.run(
-                    `INSERT INTO CartonesAsignados (usuario, id_partida, numero_carton, fecha_asignacion, contenido) VALUES (?, ?, ?, ?, ?)`,
-                    [
-                      nombre,
-                      partida.id_partida,
-                      numero,
-                      ahora,
-                      JSON.stringify(contenido),
-                    ]
-                  );
-                });
+            nuevosCartones.forEach(({ numero, contenido }) => {
+              db.run(
+                `INSERT INTO CartonesAsignados (usuario, id_partida, numero_carton, fecha_asignacion, contenido) VALUES (?, ?, ?, ?, ?)`,
+                [
+                  nombre,
+                  partida.id_partida,
+                  numero,
+                  ahoraISO,
+                  JSON.stringify(contenido),
+                ]
+              );
+            });
 
-                db.run(
-                  `INSERT INTO Uso (hora_sorteo, usuario, codigo, valor) VALUES (?, ?, ?, ?)`,
-                  [ahora.slice(11, 16), nombre, `${cantidad} cartones`, costo]
-                );
+            db.run(
+              `INSERT INTO Uso (hora_sorteo, usuario, codigo, valor) VALUES (?, ?, ?, ?)`,
+              [ahoraISO.slice(11, 16), nombre, `${cantidad} cartones`, costo]
+            );
 
-                const planos = nuevosCartones.map((c) =>
-                  convertirACartonPlano(c)
-                );
-                callback({ ok: true });
-                socket.emit("recibirCartones", planos);
-              });
-            }
-          );
+            const planos = nuevosCartones.map((c) => convertirACartonPlano(c));
+            callback({ ok: true });
+            socket.emit("recibirCartones", planos);
+          });
         }
       );
     });

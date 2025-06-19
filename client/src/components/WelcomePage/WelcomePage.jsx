@@ -216,32 +216,30 @@ const WelcomePage = () => {
             className="btn-play"
             onClick={() => {
               socket.emit("solicitarInfoPartida", (partida) => {
+                console.log("🧪 Partida recibida en botón A JUGAR:", partida);
+
                 if (!partida) {
                   alert("❌ No hay ninguna partida próxima por comenzar.");
                   return;
                 }
-
-                console.log("Partida recibida:", partida);
-
                 const ahora = new Date();
                 const inicio = new Date(partida.fecha_hora_jugada);
-                const diferencia = (inicio - ahora) / 1000 / 60;
-
-                const puedeEntrar =
-                  partida.estado === "activa" ||
-                  (diferencia <= 5 && diferencia >= -2);
-
-                if (!puedeEntrar) {
-                  alert(
-                    `⏳ No se puede ingresar todavía. La partida inicia a las ${formatFecha(
-                      partida.fecha_hora_jugada
-                    )} HS`
-                  );
+                const diferenciaMin = (inicio - ahora) / 1000 / 60;
+                if (partida.estado === "activa") {
+                  socket.emit("obtenerCartonesDisponibles");
+                  navigate("/gameplay");
                   return;
                 }
-
-                socket.emit("obtenerCartonesDisponibles");
-                navigate("/gameplay");
+                if (diferenciaMin <= 5) {
+                  socket.emit("obtenerCartonesDisponibles");
+                  navigate("/gameplay");
+                  return;
+                }
+                alert(
+                  `⏳ Aún no se puede ingresar. La partida comienza a las ${formatFecha(
+                    partida.fecha_hora_jugada
+                  )} HS`
+                );
               });
             }}
           >

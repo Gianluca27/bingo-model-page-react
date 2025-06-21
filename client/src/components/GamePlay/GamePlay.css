@@ -77,6 +77,10 @@ body {
   min-height: 358px;
 }
 
+.zona-izquierda .prize {
+  color: #ffcc00;
+}
+
 .zona-derecha {
   padding: 0.5rem;
   min-width: 310px;

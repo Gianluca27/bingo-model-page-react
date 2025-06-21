@@ -167,131 +167,135 @@ function registrarSockets(io) {
       );
     });
 
-    socket.on("comprarCartones", (cantidad, callback) => {
-      const nombre = socket.usuario;
-      if (!usuarios[nombre]) {
-        return callback({ ok: false, error: "No autenticado" });
-      }
+    socket.on(
+      "comprarCartonesParaPartida",
+      ({ cantidad, id_partida }, callback) => {
+        const nombre = socket.usuario;
+        if (!usuarios[nombre]) {
+          return callback({ ok: false, error: "No autenticado" });
+        }
 
-      // ✅ Obtenemos la partida activa o próxima pendiente
-      db.get(
-        `SELECT * FROM Partidas 
-         WHERE estado = 'activa' OR estado = 'pendiente' 
-         ORDER BY 
-           CASE estado 
-             WHEN 'activa' THEN 0 
-             WHEN 'pendiente' THEN 1 
-           END, 
-           fecha_hora_jugada ASC 
-         LIMIT 1`,
-        [],
-        (err, partida) => {
-          if (err || !partida) {
-            return callback({
-              ok: false,
-              error: "❌ No hay partida disponible actualmente.",
-            });
-          }
+        db.get(
+          `SELECT * FROM Partidas WHERE id_partida = ?`,
+          [id_partida],
+          (err, partida) => {
+            if (err || !partida) {
+              return callback({ ok: false, error: "Partida no encontrada" });
+            }
 
-          const ahora = new Date();
-          const fechaInicio = new Date(partida.fecha_hora_jugada);
-          const diferenciaMs = fechaInicio - ahora;
+            const ahora = new Date();
+            const fechaInicio = new Date(partida.fecha_hora_jugada);
+            const diferenciaMs = fechaInicio - ahora;
 
-          // 🚫 Bloqueos por estado y tiempo
-          if (partida.estado === "activa") {
-            return callback({
-              ok: false,
-              error:
-                "🚫 La partida ya está en juego. No se pueden comprar cartones.",
-            });
-          }
-
-          if (diferenciaMs <= 5000) {
-            return callback({
-              ok: false,
-              error:
-                "⚠️ Faltan menos de 5 segundos para el inicio. Ya no podés comprar cartones.",
-            });
-          }
-
-          // ✅ Continuar con lógica de compra
-          db.get(
-            `SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
-            [nombre, partida.id_partida],
-            (err2, row) => {
-              const actuales = row?.total || 0;
-              const disponibles = 12 - actuales;
-
-              if (disponibles <= 0) {
-                return callback({
-                  ok: false,
-                  error: "Ya tenés el máximo de 12 cartones para esta partida.",
-                });
-              }
-
-              if (cantidad > disponibles) {
-                return callback({
-                  ok: false,
-                  error: `Solo podés comprar ${disponibles} cartones más.`,
-                });
-              }
-
-              const costo = cantidad * partida.valor_carton;
-
-              if (usuarios[nombre].creditos < costo) {
-                return callback({
-                  ok: false,
-                  error: "Créditos insuficientes para realizar esta compra.",
-                });
-              }
-
-              // ✅ Descontar créditos
-              usuarios[nombre].creditos -= costo;
-              db.run("UPDATE Usuarios SET creditos = ? WHERE usuario = ?", [
-                usuarios[nombre].creditos,
-                nombre,
-              ]);
-
-              generarCartonesEnLote(cantidad, (nuevosCartones) => {
-                const ahoraISO = new Date().toISOString();
-
-                nuevosCartones.forEach(({ numero, contenido }) => {
-                  db.run(
-                    `INSERT INTO CartonesAsignados 
-                     (usuario, id_partida, numero_carton, fecha_asignacion, contenido) 
-                     VALUES (?, ?, ?, ?, ?)`,
-                    [
-                      nombre,
-                      partida.id_partida,
-                      numero,
-                      ahoraISO,
-                      JSON.stringify(contenido),
-                    ]
-                  );
-                });
-
-                db.run(
-                  `INSERT INTO Uso (hora_sorteo, usuario, codigo, valor) VALUES (?, ?, ?, ?)`,
-                  [
-                    ahoraISO.slice(11, 16),
-                    nombre,
-                    `${cantidad} cartones`,
-                    costo,
-                  ]
-                );
-
-                const planos = nuevosCartones.map((c) =>
-                  convertirACartonPlano(c)
-                );
-                callback({ ok: true });
-                socket.emit("recibirCartones", planos);
-                socket.emit("datosUsuario", {
-                  creditos: usuarios[nombre].creditos,
-                  cartones: actuales + cantidad,
-                });
+            if (partida.estado === "activa") {
+              return callback({
+                ok: false,
+                error: "La partida ya comenzó. No se pueden comprar cartones.",
               });
             }
-          );
+
+            if (diferenciaMs <= 5000) {
+              return callback({
+                ok: false,
+                error:
+                  "Faltan menos de 5 segundos para iniciar. Ya no se pueden comprar cartones.",
+              });
+            }
+
+            db.get(
+              `SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?`,
+              [nombre, id_partida],
+              (err2, row) => {
+                if (err2) {
+                  return callback({
+                    ok: false,
+                    error: "Error al verificar cartones existentes",
+                  });
+                }
+
+                const actuales = row?.total || 0;
+                const disponibles = 12 - actuales;
+
+                if (disponibles <= 0) {
+                  return callback({
+                    ok: false,
+                    error: "Ya tenés 12 cartones para esta partida",
+                  });
+                }
+
+                if (cantidad > disponibles) {
+                  return callback({
+                    ok: false,
+                    error: `Solo podés comprar ${disponibles} cartones más para esta partida`,
+                  });
+                }
+
+                const costo = cantidad * partida.valor_carton;
+                if (usuarios[nombre].creditos < costo) {
+                  return callback({
+                    ok: false,
+                    error: "Créditos insuficientes",
+                  });
+                }
+
+                usuarios[nombre].creditos -= costo;
+                db.run("UPDATE Usuarios SET creditos = ? WHERE usuario = ?", [
+                  usuarios[nombre].creditos,
+                  nombre,
+                ]);
+
+                generarCartonesEnLote(cantidad, (nuevosCartones) => {
+                  const ahoraISO = new Date().toISOString();
+
+                  nuevosCartones.forEach(({ numero, contenido }) => {
+                    db.run(
+                      `INSERT INTO CartonesAsignados (usuario, id_partida, numero_carton, fecha_asignacion, contenido) VALUES (?, ?, ?, ?, ?)`,
+                      [
+                        nombre,
+                        id_partida,
+                        numero,
+                        ahoraISO,
+                        JSON.stringify(contenido),
+                      ]
+                    );
+                  });
+
+                  db.run(
+                    `INSERT INTO Uso (hora_sorteo, usuario, codigo, valor) VALUES (?, ?, ?, ?)`,
+                    [
+                      ahoraISO.slice(11, 16),
+                      nombre,
+                      `${cantidad} cartones`,
+                      costo,
+                    ]
+                  );
+
+                  const planos = nuevosCartones.map((c) =>
+                    convertirACartonPlano(c)
+                  );
+                  callback({ ok: true });
+                  socket.emit("recibirCartones", planos);
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+
+    socket.on("contarCartonesUsuarioPartida", (id_partida, callback) => {
+      const nombre = socket.usuario;
+      if (typeof callback !== "function") return;
+      if (!nombre) return callback(0);
+
+      db.get(
+        `SELECT COUNT(*) as total
+         FROM CartonesAsignados
+         WHERE usuario = ? AND id_partida = ?`,
+        [nombre, id_partida],
+        (err, row) => {
+          if (err) return callback(0);
+          callback(row?.total || 0);
         }
       );
     });

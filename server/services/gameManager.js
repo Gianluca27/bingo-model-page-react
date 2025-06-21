@@ -61,7 +61,14 @@ function iniciarSorteo(io, partida) {
   console.log("🎯 Iniciando sorteo de partida:", partida);
   partidaEnJuego = true;
   sorteoActivo = true;
-  partidaActual = { ...partida, estado: "activa" }; // usamos partidaActual como única fuente de verdad
+  partidaActual = {
+    ...partida,
+    estado: "activa",
+    valor_carton: partida.valor_carton,
+    premio_linea: partida.premio_linea,
+    premio_bingo: partida.premio_bingo,
+    premio_acumulado: partida.premio_acumulado,
+  };
   const index = Math.floor(Math.random() * combinaciones.length);
   setCombinacion(combinaciones[index], index);
 

@@ -6,6 +6,7 @@ import SocketContext from "../../services/SocketContext";
 import { useAuth } from "../../context/AuthContext";
 import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
 import { formatFecha } from "../../utils/formatDate";
+import CartonPurchaseModal from "../CartonPurchaseModal/CartonPurchaseModal";
 import axios from "axios";
 
 const WelcomePage = () => {
@@ -19,6 +20,7 @@ const WelcomePage = () => {
   const [cartones, setCartones] = useState(0);
   const navigate = useNavigate();
   const [partidaVisible, setPartidaVisible] = useState(null);
+  const [modalAbierto, setModalAbierto] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -159,57 +161,18 @@ const WelcomePage = () => {
           )}
         </div>
         <div className="user-info">
-          {user?.creditos !== undefined && (
-            <h2>
-              CRÉDITOS DISPONIBLES:{" "}
-              <span className="values">${formatearMiles(user.creditos)}</span>
-            </h2>
-          )}
           {cartones !== undefined && (
             <h2>
-              CARTONES DISPONIBLES:{" "}
+              CARTONES PARA ESTA PARTIDA:{" "}
               <span className="values">{cartones} / 12</span>
             </h2>
           )}
-          <h3>ELEGÍ LA CANTIDAD DE CARTONES:</h3>
-          <select
-            id="cantidad-cartones"
-            value={cantidadCartones}
-            onChange={(e) => setCantidadCartones(parseInt(e.target.value))}
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <option key={i + 1} value={i + 1}>
-                {i + 1}
-              </option>
-            ))}
-          </select>
         </div>
         <h2>{texto}</h2>
         <div className="welco-btn-group">
           <button className="btn">COMO JUGAR</button>
           <button className="btn">COMPRAR CRÉDITOS</button>
-          <button
-            className="btn"
-            onClick={() => {
-              socket.emit("comprarCartones", cantidadCartones, (respuesta) => {
-                if (respuesta.ok) {
-                  alert(
-                    `🎟️ Compraste ${cantidadCartones} cartones correctamente`
-                  );
-                  setTimeout(() => {
-                    socket.emit("solicitarDatosUsuario", (datos) => {
-                      if (datos) {
-                        user.creditos = datos.creditos;
-                        setCartones(datos.cartones);
-                      }
-                    });
-                  }, 300);
-                } else {
-                  alert("Error al comprar cartones: " + respuesta.error);
-                }
-              });
-            }}
-          >
+          <button className="btn" onClick={() => setModalAbierto(true)}>
             COMPRAR CARTONES
           </button>
           <button
@@ -252,6 +215,35 @@ const WelcomePage = () => {
           </button>
         </div>
       </div>
+      {modalAbierto && (
+        <CartonPurchaseModal
+          user={user}
+          onClose={() => setModalAbierto(false)}
+          onConfirm={(partida, cantidad) => {
+            socket.emit(
+              "comprarCartonesParaPartida",
+              { cantidad, id_partida: partida.id_partida },
+              (respuesta) => {
+                if (respuesta.ok) {
+                  alert(
+                    `🎟️ Compraste ${cantidad} cartones para la partida del ${new Date(
+                      partida.fecha_hora_jugada
+                    ).toLocaleString()}`
+                  );
+                  socket.emit("solicitarDatosUsuario", (datos) => {
+                    if (datos) {
+                      user.creditos = datos.creditos;
+                      setCartones(datos.cartones);
+                    }
+                  });
+                } else {
+                  alert("❌ Error: " + respuesta.error);
+                }
+              }
+            );
+          }}
+        />
+      )}
     </section>
   );
 };

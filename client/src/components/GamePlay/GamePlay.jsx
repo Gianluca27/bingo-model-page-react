@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import "./GamePlay.css";
 import bingoLogo from "../../assets/images/bingomaniamia-logo.png";
 import defaultImage from "../../assets/images/bolillas/default.png";
+import { formatFecha } from "../../utils/formatDate";
 
 const bolillaAudio = {};
 function importBolillaAudio() {
@@ -51,13 +52,10 @@ const GamePlay = () => {
   const [contador, setContador] = useState(0);
   const [modalPremio, setModalPremio] = useState(null);
   const [mensajeGlobal, setMensajeGlobal] = useState("");
-  const [fechaSorteo, setFechaSorteo] = useState("");
-  const [acumulado, setAcumulado] = useState(0);
-  const [premioLinea, setPremioLinea] = useState(0);
-  const [premioBingo, setPremioBingo] = useState(0);
   const [drawnNumbers, setDrawnNumbers] = useState([]);
   const [modoEspectador, setModoEspectador] = useState(false);
   const [partida, setPartida] = useState(null);
+  const [fechaSorteo, setFechaSorteo] = useState("");
 
   const cartonesRef = useRef([]);
   const marcadasCartonesRef = useRef([]);
@@ -99,12 +97,37 @@ const GamePlay = () => {
   );
 
   useEffect(() => {
-    const handleEstadoActual = ({ bolillasEmitidas, partidaId }) => {
+    const handleEstadoActual = ({
+      bolillasEmitidas,
+      partidaId,
+      valorCarton,
+      premioLinea,
+      premioBingo,
+      premioAcumulado,
+      fechaSorteo,
+    }) => {
       if (Array.isArray(bolillasEmitidas)) {
-        bolillasEmitidas.forEach((b, i) => {
-          setTimeout(() => {
-            setBolillaActual(b);
-          }, i * 500); // velocidad ajustable
+        setDrawnNumbers(bolillasEmitidas);
+        setContador(bolillasEmitidas.length);
+        setBolillaActual(bolillasEmitidas.at(-1) ?? null);
+      }
+
+      if (
+        partidaId &&
+        typeof valorCarton === "number" &&
+        typeof premioLinea === "number" &&
+        typeof premioBingo === "number" &&
+        typeof premioAcumulado === "number" &&
+        fechaSorteo
+      ) {
+        setPartida({
+          id_partida: partidaId,
+          valor_carton: valorCarton,
+          premio_linea: premioLinea,
+          premio_bingo: premioBingo,
+          premio_acumulado: premioAcumulado,
+          fecha_hora_jugada: fechaSorteo,
+          estado: "activa",
         });
       }
     };
@@ -114,46 +137,8 @@ const GamePlay = () => {
   }, [socket]);
 
   useEffect(() => {
-    socket.emit("unirseAPartidaActual", (data) => {
-      if (!data?.partida) {
-        setModoEspectador(true);
-        return;
-      }
-
-      setPartida(data.partida);
-      setCartones(data.cartones || []);
-      cartonesRef.current = data.cartones || [];
-
-      setModoEspectador(!data.cartones || data.cartones.length === 0);
-
-      if (Array.isArray(data.bolillas)) {
-        setDrawnNumbers(data.bolillas);
-        setContador(data.bolillas.length);
-        setBolillaActual(data.bolillas.at(-1) ?? null);
-
-        const marcadas = [];
-        cartonesRef.current.forEach((carton) => {
-          if (!Array.isArray(carton)) return;
-          carton.forEach((fila) => {
-            if (!Array.isArray(fila)) return;
-            fila.forEach((celda) => {
-              if (data.bolillas.includes(celda)) {
-                marcadas.push(celda);
-              }
-            });
-          });
-        });
-
-        marcadasCartonesRef.current = marcadas;
-      }
-    });
-  }, []);
-
-  useEffect(() => {
     socket.on("nuevaBolilla", handleNewBolilla);
-    socket.on("finSorteo", () => {
-      setDrawnNumbers([]);
-    });
+    socket.on("finSorteo", () => setDrawnNumbers([]));
     return () => {
       socket.off("nuevaBolilla", handleNewBolilla);
       socket.off("finSorteo");
@@ -162,35 +147,68 @@ const GamePlay = () => {
 
   useEffect(() => {
     if (!socket || !user?.username) return;
-    const guardados = localStorage.getItem("cartonesUsuario");
-    if (guardados) {
-      try {
-        const parsed = JSON.parse(guardados);
-        if (Array.isArray(parsed)) {
-          setCartones(parsed);
-          cartonesRef.current = parsed;
-          marcadasCartonesRef.current = [];
-        }
-      } catch (e) {
-        console.warn("⚠️ Error al parsear cartones guardados:", e);
+
+    socket.emit("login", user.username);
+
+    socket.emit("unirseAPartidaActual", (data) => {
+      if (!data?.partida) {
+        setModoEspectador(true);
+        return;
       }
-    }
-    socket.emit("obtenerCartonesAsignados");
-    socket.emit("solicitarInfoPartida");
 
-    const onRecibirCartones = (cartonesServer) => {
-      console.log("📦 Cartones del servidor:", cartonesServer);
-      setCartones(cartonesServer);
-      cartonesRef.current = cartonesServer;
+      setPartida(data.partida);
+
+      const planos = (data.cartones || []).map((c) =>
+        Array.isArray(c) ? c.flat() : c
+      );
+
+      setCartones(planos);
+      cartonesRef.current = planos;
       marcadasCartonesRef.current = [];
-      localStorage.setItem("cartonesUsuario", JSON.stringify(cartonesServer));
-    };
+      setModoEspectador(planos.length === 0);
 
-    socket.on("recibirCartones", onRecibirCartones);
+      if (Array.isArray(data.bolillas)) {
+        setDrawnNumbers(data.bolillas);
+        setContador(data.bolillas.length);
+        setBolillaActual(data.bolillas.at(-1) ?? null);
 
-    return () => {
-      socket.off("recibirCartones", onRecibirCartones);
-    };
+        const marcadas = [];
+        planos.forEach((carton) => {
+          carton.forEach((celda) => {
+            if (data.bolillas.includes(celda)) {
+              marcadas.push(celda);
+            }
+          });
+        });
+        marcadasCartonesRef.current = marcadas;
+      }
+    });
+
+    socket.emit("solicitarInfoPartida", (nuevaPartida) => {
+      if (!nuevaPartida) return;
+      setPartida((prev) => ({
+        id_partida: nuevaPartida.id_partida ?? prev?.id_partida,
+        fecha_hora_jugada:
+          nuevaPartida.fecha_hora_jugada ?? prev?.fecha_hora_jugada,
+        valor_carton:
+          typeof nuevaPartida.valor_carton === "number"
+            ? nuevaPartida.valor_carton
+            : prev?.valor_carton,
+        premio_linea:
+          typeof nuevaPartida.premio_linea === "number"
+            ? nuevaPartida.premio_linea
+            : prev?.premio_linea,
+        premio_bingo:
+          typeof nuevaPartida.premio_bingo === "number"
+            ? nuevaPartida.premio_bingo
+            : prev?.premio_bingo,
+        premio_acumulado:
+          typeof nuevaPartida.premio_acumulado === "number"
+            ? nuevaPartida.premio_acumulado
+            : prev?.premio_acumulado,
+        estado: nuevaPartida.estado ?? prev?.estado ?? "activa",
+      }));
+    });
   }, [socket, user?.username]);
 
   useEffect(() => {
@@ -267,22 +285,26 @@ const GamePlay = () => {
         <div className="zona-principal">
           <div className="zona-izquierda texto-item">
             <p>
-              <strong>SORTEO DE LAS:</strong> {fechaSorteo || "–"}
+              <strong>SORTEO DE LAS:</strong>{" "}
+              {formatFecha(partida?.fecha_hora_jugada) || "–"}
             </p>
             <p>
-              <strong>TOPE:</strong> 39
+              <strong>BOLA TOPE:</strong> 39
             </p>
             <p>
-              <strong>BOLA:</strong> {contador}
+              <strong>BOLILLAS SORTEADAS:</strong> {contador}
             </p>
-            <p>
-              <strong>ACUMULADO:</strong> ${acumulado.toLocaleString("es-AR")}
+            <p className="prize">
+              <strong>ACUMULADO:</strong> $
+              {partida?.premio_acumulado?.toLocaleString("es-AR") || 0}
             </p>
-            <p>
-              <strong>LÍNEA:</strong> ${premioLinea.toLocaleString("es-AR")}
+            <p className="prize">
+              <strong>LÍNEA:</strong> $
+              {partida?.premio_linea?.toLocaleString("es-AR") || 0}
             </p>
-            <p>
-              <strong>BINGO:</strong> ${premioBingo.toLocaleString("es-AR")}
+            <p className="prize">
+              <strong>BINGO:</strong> $
+              {partida?.premio_bingo?.toLocaleString("es-AR") || 0}
             </p>
           </div>
           <div className="zona-centro">
@@ -355,9 +377,13 @@ const GamePlay = () => {
         {!modoEspectador && cartones.length > 0 && <h3>Tus cartones:</h3>}
         {cartones.map((carton, idxCarton) => {
           if (!Array.isArray(carton) || carton.length !== 27) return null;
-          const filas = Array.from({ length: 3 }, (_, i) =>
-            carton.slice(i * 9, (i + 1) * 9)
-          );
+
+          const filas = [
+            carton.slice(0, 9),
+            carton.slice(9, 18),
+            carton.slice(18, 27),
+          ];
+
           return (
             <div key={idxCarton} className="carton">
               {filas.map((fila, idxFila) =>

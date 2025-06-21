@@ -42,7 +42,7 @@ body {
 .zona-principal {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   width: 100%;
   box-sizing: border-box;
@@ -81,11 +81,24 @@ body {
   color: #ffcc00;
 }
 
+.zona-centro {
+  align-items: center;
+}
+
 .zona-derecha {
   padding: 0.5rem;
   min-width: 310px;
   justify-content: flex-start;
   align-items: center;
+}
+
+.bolilla-container {
+  display: flex;
+  align-items: center;
+}
+
+.bolilla-imagen {
+  border-radius: 10px;
 }
 
 .bolilla-grid-wrapper {
@@ -158,7 +171,7 @@ body {
 }
 
 .aviso {
-  width: 40%;
+  width: 30%;
   background-color: yellow;
   color: black;
   display: block;
@@ -233,6 +246,10 @@ body {
   text-align: center;
   max-width: 400px;
   box-shadow: 0 0 15px #000;
+}
+
+.modo-espectador {
+  margin-top: 1.5rem;
 }
 
 @keyframes blink-border {

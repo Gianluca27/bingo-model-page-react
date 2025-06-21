@@ -149,11 +149,29 @@ function registrarSockets(io) {
 
       if (typeof callback !== "function") return;
 
-      // Si hay una partida activa en memoria (aún en juego), devolver esa
+      // Si hay una partida activa, buscarla en la base para asegurar que tenga los premios
       if (partidaActual && partidaActual.estado === "activa") {
-        return callback(partidaActual);
+        db.get(
+          `SELECT * FROM Partidas WHERE id_partida = ?`,
+          [partidaActual.id_partida],
+          (err, partidaCompleta) => {
+            if (err || !partidaCompleta) return callback(null);
+
+            callback({
+              id_partida: partidaCompleta.id_partida,
+              fecha_hora_jugada: partidaCompleta.fecha_hora_jugada,
+              valor_carton: partidaCompleta.valor_carton,
+              premio_linea: partidaCompleta.premio_linea,
+              premio_bingo: partidaCompleta.premio_bingo,
+              premio_acumulado: partidaCompleta.premio_acumulado,
+              estado: partidaCompleta.estado,
+            });
+          }
+        );
+        return;
       }
 
+      // Si no hay partida activa, devolver la próxima pendiente
       db.get(
         `SELECT * FROM Partidas 
          WHERE estado = 'pendiente' 

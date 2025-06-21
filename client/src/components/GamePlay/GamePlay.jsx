@@ -56,6 +56,9 @@ const GamePlay = () => {
   const [modoEspectador, setModoEspectador] = useState(false);
   const [partida, setPartida] = useState(null);
   const [fechaSorteo, setFechaSorteo] = useState("");
+  const [mensajeInicio, setMensajeInicio] = useState("");
+  const [mostrarAviso, setMostrarAviso] = useState(false);
+  const [tiempoHastaInicio, setTiempoHastaInicio] = useState(null);
 
   const cartonesRef = useRef([]);
   const marcadasCartonesRef = useRef([]);
@@ -120,7 +123,7 @@ const GamePlay = () => {
         typeof premioAcumulado === "number" &&
         fechaSorteo
       ) {
-        setPartida({
+        const nuevaPartida = {
           id_partida: partidaId,
           valor_carton: valorCarton,
           premio_linea: premioLinea,
@@ -128,10 +131,25 @@ const GamePlay = () => {
           premio_acumulado: premioAcumulado,
           fecha_hora_jugada: fechaSorteo,
           estado: "activa",
-        });
+        };
+        setPartida((prev) => ({
+          ...prev,
+          id_partida: partidaId ?? prev?.id_partida,
+          valor_carton:
+            typeof valorCarton === "number" ? valorCarton : prev?.valor_carton,
+          premio_linea:
+            typeof premioLinea === "number" ? premioLinea : prev?.premio_linea,
+          premio_bingo:
+            typeof premioBingo === "number" ? premioBingo : prev?.premio_bingo,
+          premio_acumulado:
+            typeof premioAcumulado === "number"
+              ? premioAcumulado
+              : prev?.premio_acumulado,
+          fecha_hora_jugada: fechaSorteo ?? prev?.fecha_hora_jugada,
+          estado: "activa",
+        }));
       }
     };
-
     socket.on("estadoActual", handleEstadoActual);
     return () => socket.off("estadoActual", handleEstadoActual);
   }, [socket]);
@@ -153,6 +171,16 @@ const GamePlay = () => {
     socket.emit("unirseAPartidaActual", (data) => {
       if (!data?.partida) {
         setModoEspectador(true);
+        return;
+      }
+
+      const inicio = new Date(data.partida.fecha_hora_jugada).getTime();
+      const ahora = new Date().getTime();
+      const diferenciaMs = inicio - ahora;
+
+      if (diferenciaMs > 5 * 60 * 1000) {
+        alert("Solo podés ingresar a la partida 5 minutos antes del inicio.");
+        navigate("/welcome", { replace: true });
         return;
       }
 
@@ -210,6 +238,44 @@ const GamePlay = () => {
       }));
     });
   }, [socket, user?.username]);
+
+  useEffect(() => {
+    if (!partida?.fecha_hora_jugada) return;
+
+    const inicio = new Date(partida.fecha_hora_jugada).getTime();
+    const ahora = new Date().getTime();
+
+    if (ahora >= inicio) {
+      setMostrarAviso(false);
+      setMensajeInicio("");
+      return;
+    }
+
+    setMostrarAviso(true);
+
+    const interval = setInterval(() => {
+      const ahoraActualizado = new Date().getTime();
+      const diff = inicio - ahoraActualizado;
+
+      if (diff > 0) {
+        const minutos = Math.floor(diff / 60000);
+        const segundos = Math.floor((diff % 60000) / 1000);
+        setMensajeInicio(
+          `COMIENZA EN ${minutos}:${segundos.toString().padStart(2, "0")}`
+        );
+      } else {
+        setMensajeInicio("YA COMIENZA ¡BUENA SUERTE!");
+        clearInterval(interval);
+
+        setTimeout(() => {
+          setMostrarAviso(false);
+          setMensajeInicio("");
+        }, 11000);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [partida?.fecha_hora_jugada]);
 
   useEffect(() => {
     if (!socket) return;
@@ -285,8 +351,9 @@ const GamePlay = () => {
         <div className="zona-principal">
           <div className="zona-izquierda texto-item">
             <p>
-              <strong>SORTEO DE LAS:</strong>{" "}
+              <strong>SORTEO DEL:</strong>{" "}
               {formatFecha(partida?.fecha_hora_jugada) || "–"}
+              Hs
             </p>
             <p>
               <strong>BOLA TOPE:</strong> 39
@@ -329,7 +396,6 @@ const GamePlay = () => {
                 />
               )}
             </div>
-            <div className="mensaje-global">{mensajeGlobal}</div>
           </div>
           <div className="zona-derecha texto-item">
             <div className="bolilla-grid-wrapper">
@@ -364,14 +430,14 @@ const GamePlay = () => {
           </div>
         )}
       </div>
-      <h2 className="aviso">YA COMIENZA</h2>
+      {mostrarAviso && <h2 className="aviso">{mensajeInicio}</h2>}
       <div
         className="zona-cartones"
         style={{ maxHeight: "400px", overflowY: "auto" }}
       >
         {modoEspectador && (
           <div className="modo-espectador">
-            🔍 Estás viendo la partida como espectador.
+            🔍 Estás viendo la partida como espectador. No recibirás premios.
           </div>
         )}
         {!modoEspectador && cartones.length > 0 && <h3>Tus cartones:</h3>}

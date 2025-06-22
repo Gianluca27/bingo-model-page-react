@@ -229,14 +229,14 @@ const GamePlay = () => {
 
       setPartida(data.partida);
 
-      const planos = (data.cartones || []).map((c) =>
-        Array.isArray(c) ? c.flat() : c
+      const cartonesValidos = (data.cartones || []).filter(
+        (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
       );
 
-      setCartones(planos);
-      cartonesRef.current = planos;
+      setCartones(cartonesValidos);
+      cartonesRef.current = cartonesValidos.map((c) => c.contenido);
       marcadasCartonesRef.current = [];
-      setModoEspectador(planos.length === 0);
+      setModoEspectador(cartonesValidos.length === 0);
 
       if (Array.isArray(data.bolillas)) {
         setDrawnNumbers(data.bolillas);
@@ -244,7 +244,7 @@ const GamePlay = () => {
         setBolillaActual(data.bolillas.at(-1) ?? null);
 
         const marcadas = [];
-        planos.forEach((carton) => {
+        cartonesValidos.forEach((carton) => {
           carton.forEach((celda) => {
             if (data.bolillas.includes(celda)) {
               marcadas.push(celda);
@@ -367,16 +367,16 @@ const GamePlay = () => {
               <strong>BOLILLAS SORTEADAS:</strong> {contador}
             </p>
             <p className="prize">
-              <strong>ACUMULADO:</strong> $
-              {partida?.premio_acumulado?.toLocaleString("es-AR") || 0}
-            </p>
-            <p className="prize">
               <strong>LÍNEA:</strong> $
               {partida?.premio_linea?.toLocaleString("es-AR") || 0}
             </p>
             <p className="prize">
               <strong>BINGO:</strong> $
               {partida?.premio_bingo?.toLocaleString("es-AR") || 0}
+            </p>
+            <p className="prize">
+              <strong>ACUMULADO:</strong> $
+              {partida?.premio_acumulado?.toLocaleString("es-AR") || 0}
             </p>
           </div>
           <div className="zona-centro">
@@ -446,34 +446,61 @@ const GamePlay = () => {
           </div>
         )}
         {!modoEspectador && cartones.length > 0 && <h3>Tus cartones:</h3>}
-        {cartones.map((carton, idxCarton) => {
-          if (!Array.isArray(carton) || carton.length !== 27) return null;
+        {cartones
+          .filter(
+            (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+          )
+          .map((carton, idx) => {
+            const marcadas = carton.contenido.filter((n) =>
+              drawnNumbers.includes(n)
+            ).length;
 
-          const filas = [
-            carton.slice(0, 9),
-            carton.slice(9, 18),
-            carton.slice(18, 27),
-          ];
+            const filas = [
+              carton.contenido.slice(0, 9),
+              carton.contenido.slice(9, 18),
+              carton.contenido.slice(18, 27),
+            ];
 
-          return (
-            <div key={idxCarton} className="carton">
-              {filas.map((fila, idxFila) =>
-                fila.map((celda, idxCelda) => (
-                  <div
-                    key={`${idxFila}-${idxCelda}`}
-                    className={`celda-carton ${
-                      marcadasCartonesRef.current.includes(celda)
-                        ? "marcada"
-                        : ""
-                    }`}
-                  >
-                    {celda !== 0 ? celda : ""}
-                  </div>
-                ))
-              )}
-            </div>
-          );
-        })}
+            const lineaCompleta = filas.map(
+              (fila) =>
+                fila.filter((n) => n !== 0 && drawnNumbers.includes(n)).length
+            );
+            const mejorLinea = Math.max(...lineaCompleta);
+
+            return { carton, marcadas, mejorLinea, index: idx };
+          })
+          .sort((a, b) => {
+            if (b.mejorLinea !== a.mejorLinea)
+              return b.mejorLinea - a.mejorLinea;
+            return b.marcadas - a.marcadas;
+          })
+          .map(({ carton, index }) => {
+            const filas = [
+              carton.contenido.slice(0, 9),
+              carton.contenido.slice(9, 18),
+              carton.contenido.slice(18, 27),
+            ];
+
+            return (
+              <div key={index} className="carton">
+                <div className="numero-carton">Cartón N°{carton.numero}</div>
+                {filas.map((fila, idxFila) =>
+                  fila.map((celda, idxCelda) => (
+                    <div
+                      key={`${idxFila}-${idxCelda}`}
+                      className={`celda-carton ${
+                        marcadasCartonesRef.current.includes(celda)
+                          ? "marcada"
+                          : ""
+                      }`}
+                    >
+                      {celda !== 0 ? celda : ""}
+                    </div>
+                  ))
+                )}
+              </div>
+            );
+          })}
       </div>
 
       <div className="btn-group">

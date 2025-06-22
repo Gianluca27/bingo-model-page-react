@@ -402,16 +402,17 @@ function registrarSockets(io) {
       );
     });
 
-    socket.on("obtenerCartonesDisponibles", (callback) => {
+    socket.on("obtenerCartonesDisponibles", (idPartida, callback) => {
       const nombre = socket.usuario;
       db.all(
-        "SELECT numero_carton, contenido FROM CartonesAsignados WHERE usuario = ?",
-        [nombre],
+        "SELECT numero_carton, contenido FROM CartonesAsignados WHERE usuario = ? AND id_partida = ?",
+        [nombre, idPartida],
         (err, rows) => {
           if (!err && typeof callback === "function") {
-            const disponibles = rows.map((r) =>
-              convertirACartonPlano({ contenido: JSON.parse(r.contenido) })
-            );
+            const disponibles = rows.map((r) => ({
+              numero: r.numero_carton,
+              contenido: JSON.parse(r.contenido),
+            }));
             callback(disponibles);
           }
         }

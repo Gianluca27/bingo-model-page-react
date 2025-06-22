@@ -32,6 +32,44 @@ const WelcomePage = () => {
   };
 
   useEffect(() => {
+    const handleConnect = () => {
+      if (user?.username) {
+        socket.emit("login", user.username);
+      }
+    };
+
+    if (socket?.connected && user?.username) {
+      socket.emit("login", user.username);
+    }
+
+    socket.on("connect", handleConnect);
+    return () => socket.off("connect", handleConnect);
+  }, [socket, user]);
+
+  useEffect(() => {
+    const handleReconexion = () => {
+      if (user?.username) {
+        socket.emit("login", user.username);
+
+        if (partidaVisible?.id_partida) {
+          socket.emit(
+            "obtenerCartonesDisponibles",
+            partidaVisible.id_partida,
+            (cartones) => {
+              if (Array.isArray(cartones)) {
+                setCartones(cartones.length);
+              }
+            }
+          );
+        }
+      }
+    };
+
+    socket.on("connect", handleReconexion);
+    return () => socket.off("connect", handleReconexion);
+  }, [socket, user, partidaVisible]);
+
+  useEffect(() => {
     const obtenerPartidas = async () => {
       const res = await axios.get("http://localhost:3001/api/partidas");
       const data = res.data;
@@ -99,29 +137,34 @@ const WelcomePage = () => {
   }, [socket, partidaVisible]);
 
   useEffect(() => {
+    if (!socket?.connected || !user?.username || !partidaVisible?.id_partida)
+      return;
+
+    // Solo si el servidor admite una respuesta (callback) tras login
+    socket.emit("login", user.username, () => {
+      socket.emit(
+        "obtenerCartonesDisponibles",
+        partidaVisible.id_partida,
+        (cartones) => {
+          if (Array.isArray(cartones)) {
+            setCartones(cartones.length);
+          } else {
+            setCartones(0);
+          }
+        }
+      );
+    });
+  }, [socket, user, partidaVisible]);
+
+  useEffect(() => {
     const handler = (mensaje) => setMensajeGlobal(mensaje);
     socket.on("mensaje-tiempo", handler);
     return () => socket.off("mensaje-tiempo", handler);
   }, [socket]);
 
   useEffect(() => {
-    const handleConnect = () => {
-      if (user?.username) socket.emit("login", user.username);
-    };
-    socket.on("connect", handleConnect);
-    return () => socket.off("connect", handleConnect);
-  }, [socket, user]);
-
-  useEffect(() => {
-    if (user?.username && socket?.connected) {
-      socket.emit("login", user.username);
-    }
-  }, [user, socket]);
-
-  useEffect(() => {
-    const handleDatosUsuario = ({ creditos, cartones }) => {
+    const handleDatosUsuario = ({ creditos }) => {
       user.creditos = creditos;
-      setCartones(cartones);
     };
     socket.on("datosUsuario", handleDatosUsuario);
     return () => socket.off("datosUsuario", handleDatosUsuario);

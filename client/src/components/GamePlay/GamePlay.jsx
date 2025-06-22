@@ -61,30 +61,46 @@ const GamePlay = () => {
   const [bloqueado, setBloqueado] = useState(false);
 
   const cartonesRef = useRef([]);
+  useEffect(() => {
+    cartonesRef.current = cartones;
+  }, [cartones]);
+
   const marcadasCartonesRef = useRef([]);
 
   const handleNewBolilla = useCallback(
     (num) => {
-      setBolillaActual(num);
+      const nuevaBolilla = num;
+      setBolillaActual(nuevaBolilla);
       setContador((prev) => prev + 1);
-      setDrawnNumbers((prev) => [...prev, num]);
+
+      setDrawnNumbers((prev) => {
+        const nuevasBolillas = [...prev, nuevaBolilla];
+        const ordenados = ordenarCartonesPorLineas(
+          cartonesRef.current,
+          nuevasBolillas
+        );
+        setCartones(ordenados);
+        return nuevasBolillas;
+      });
+
       cartonesRef.current.forEach((carton) => {
         if (Array.isArray(carton)) {
           carton.forEach((fila) => {
             if (Array.isArray(fila)) {
               fila.forEach((celda) => {
-                if (celda === num) {
+                if (celda === nuevaBolilla) {
                   marcadasCartonesRef.current.push(celda);
                 }
               });
-            } else if (fila === num) {
+            } else if (fila === nuevaBolilla) {
               marcadasCartonesRef.current.push(fila);
             }
           });
         }
       });
+
       if (soundOn) {
-        const padded = String(num).padStart(2, "0");
+        const padded = String(nuevaBolilla).padStart(2, "0");
         const audioFileName = `${padded}.mp3`;
         if (bolillaAudio[audioFileName]) {
           const audio = new Audio(bolillaAudio[audioFileName]);
@@ -98,6 +114,49 @@ const GamePlay = () => {
     },
     [soundOn]
   );
+
+  const ordenarCartonesPorLineas = (cartones, bolillas) => {
+    return cartones
+      .map((cartonObj) => {
+        const filas = [
+          cartonObj.contenido.slice(0, 9),
+          cartonObj.contenido.slice(9, 18),
+          cartonObj.contenido.slice(18, 27),
+        ];
+
+        const lineas = filas.map(
+          (fila) =>
+            fila.filter((n) => n !== null && bolillas.includes(n)).length
+        );
+
+        const lineasCompletas = lineas.filter((cant) => cant === 5).length;
+        const progresoSiguienteLinea = Math.max(
+          ...lineas.filter((cant) => cant < 5),
+          0
+        );
+
+        return {
+          ...cartonObj,
+          progresoOrden: {
+            lineasCompletas,
+            progresoSiguienteLinea,
+          },
+        };
+      })
+      .sort((a, b) => {
+        if (
+          b.progresoOrden.lineasCompletas !== a.progresoOrden.lineasCompletas
+        ) {
+          return (
+            b.progresoOrden.lineasCompletas - a.progresoOrden.lineasCompletas
+          );
+        }
+        return (
+          b.progresoOrden.progresoSiguienteLinea -
+          a.progresoOrden.progresoSiguienteLinea
+        );
+      });
+  };
 
   useEffect(() => {
     const handleEstadoActual = ({
@@ -221,22 +280,50 @@ const GamePlay = () => {
 
     socket.emit("login", user.username);
 
-    socket.emit("unirseAPartidaActual", (data) => {
-      if (!data?.partida) {
-        setModoEspectador(true);
-        return;
-      }
+    const intentarUnirse = () => {
+      socket.emit("unirseAPartidaActual", (data) => {
+        if (!data?.partida) {
+          setModoEspectador(true);
+          return;
+        }
 
-      setPartida(data.partida);
+        setPartida(data.partida);
 
+        const cartonesValidos = (data.cartones || []).filter(
+          (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+        );
+
+        if (cartonesValidos.length === 0) {
+          // Retry 1 sola vez por si fue un race condition
+          setTimeout(() => {
+            socket.emit("unirseAPartidaActual", (retryData) => {
+              if (!retryData?.cartones || retryData.cartones.length === 0) {
+                setModoEspectador(true);
+                return;
+              }
+              cargarCartones(retryData);
+            });
+          }, 500); // espera medio segundo
+        } else {
+          cargarCartones(data);
+        }
+      });
+    };
+
+    const cargarCartones = (data) => {
       const cartonesValidos = (data.cartones || []).filter(
         (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
       );
 
-      setCartones(cartonesValidos);
-      console.log(cartones);
+      const ordenados = ordenarCartonesPorLineas(
+        cartonesValidos,
+        data.bolillas || []
+      );
+
+      setCartones(ordenados);
       cartonesRef.current = cartonesValidos.map((c) => c.contenido);
       marcadasCartonesRef.current = [];
+
       setModoEspectador(cartonesValidos.length === 0);
 
       if (Array.isArray(data.bolillas)) {
@@ -254,7 +341,9 @@ const GamePlay = () => {
         });
         marcadasCartonesRef.current = marcadas;
       }
-    });
+    };
+
+    intentarUnirse();
 
     socket.emit("solicitarInfoPartida", (nuevaPartida) => {
       if (!nuevaPartida) return;
@@ -421,6 +510,7 @@ const GamePlay = () => {
           </div>
         </div>
       </div>
+      {mostrarAviso && <h2 className="aviso">{mensajeInicio}</h2>}
       {modalPremio && (
         <div className="modal-premio">
           <div className="modal-contenido">
@@ -467,11 +557,6 @@ const GamePlay = () => {
             const mejorLinea = Math.max(...lineaCompleta);
 
             return { carton, marcadas, mejorLinea, index: idx };
-          })
-          .sort((a, b) => {
-            if (b.mejorLinea !== a.mejorLinea)
-              return b.mejorLinea - a.mejorLinea;
-            return b.marcadas - a.marcadas;
           })
           .map(({ carton, index }) => {
             const filas = [

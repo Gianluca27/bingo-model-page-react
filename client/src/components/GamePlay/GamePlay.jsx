@@ -75,28 +75,24 @@ const GamePlay = () => {
 
       setDrawnNumbers((prev) => {
         const nuevasBolillas = [...prev, nuevaBolilla];
+
         const ordenados = ordenarCartonesPorLineas(
           cartonesRef.current,
           nuevasBolillas
         );
         setCartones(ordenados);
-        return nuevasBolillas;
-      });
 
-      cartonesRef.current.forEach((carton) => {
-        if (Array.isArray(carton)) {
-          carton.forEach((fila) => {
-            if (Array.isArray(fila)) {
-              fila.forEach((celda) => {
-                if (celda === nuevaBolilla) {
-                  marcadasCartonesRef.current.push(celda);
-                }
-              });
-            } else if (fila === nuevaBolilla) {
-              marcadasCartonesRef.current.push(fila);
+        const nuevasMarcadas = [];
+        cartonesRef.current.forEach((carton) => {
+          carton.contenido.forEach((celda) => {
+            if (nuevasBolillas.includes(celda)) {
+              nuevasMarcadas.push(celda);
             }
           });
-        }
+        });
+        marcadasCartonesRef.current = nuevasMarcadas;
+
+        return nuevasBolillas;
       });
 
       if (soundOn) {
@@ -315,14 +311,23 @@ const GamePlay = () => {
         (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
       );
 
-      const ordenados = ordenarCartonesPorLineas(
+      const ordenados = ordenarCartonesPorProgreso(
         cartonesValidos,
         data.bolillas || []
       );
-
       setCartones(ordenados);
-      cartonesRef.current = cartonesValidos.map((c) => c.contenido);
-      marcadasCartonesRef.current = [];
+
+      cartonesRef.current = cartonesValidos;
+
+      const marcadas = [];
+      cartonesValidos.forEach((carton) => {
+        carton.contenido.forEach((celda) => {
+          if (data.bolillas.includes(celda)) {
+            marcadas.push(celda);
+          }
+        });
+      });
+      marcadasCartonesRef.current = marcadas;
 
       setModoEspectador(cartonesValidos.length === 0);
 
@@ -330,16 +335,6 @@ const GamePlay = () => {
         setDrawnNumbers(data.bolillas);
         setContador(data.bolillas.length);
         setBolillaActual(data.bolillas.at(-1) ?? null);
-
-        const marcadas = [];
-        cartonesValidos.forEach((carton) => {
-          carton.contenido.forEach((celda) => {
-            if (data.bolillas.includes(celda)) {
-              marcadas.push(celda);
-            }
-          });
-        });
-        marcadasCartonesRef.current = marcadas;
       }
     };
 

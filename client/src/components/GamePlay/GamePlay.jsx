@@ -58,7 +58,7 @@ const GamePlay = () => {
   const [fechaSorteo, setFechaSorteo] = useState("");
   const [mensajeInicio, setMensajeInicio] = useState("");
   const [mostrarAviso, setMostrarAviso] = useState(false);
-  const [tiempoHastaInicio, setTiempoHastaInicio] = useState(null);
+  const [bloqueado, setBloqueado] = useState(false);
 
   const cartonesRef = useRef([]);
   const marcadasCartonesRef = useRef([]);
@@ -164,6 +164,59 @@ const GamePlay = () => {
   }, [handleNewBolilla, socket]);
 
   useEffect(() => {
+    if (!partida?.fecha_hora_jugada || !partida?.estado) return;
+
+    const ahora = new Date();
+    const inicio = new Date(partida.fecha_hora_jugada);
+    const diferenciaMinutos = (inicio - ahora) / 60000;
+
+    const partidaYaIniciada = partida.estado === "activa";
+    const faltanMenosDe5Min = diferenciaMinutos <= 5;
+
+    if (!partidaYaIniciada && !faltanMenosDe5Min) {
+      setBloqueado(true);
+    }
+  }, [partida]);
+
+  useEffect(() => {
+    if (!partida?.fecha_hora_jugada) return;
+
+    const inicio = new Date(partida.fecha_hora_jugada).getTime();
+    const ahora = new Date().getTime();
+
+    if (ahora >= inicio) {
+      setMostrarAviso(false);
+      setMensajeInicio("");
+      return;
+    }
+
+    setMostrarAviso(true);
+
+    const interval = setInterval(() => {
+      const ahoraActualizado = new Date().getTime();
+      const diff = inicio - ahoraActualizado;
+
+      if (diff > 0) {
+        const minutos = Math.floor(diff / 60000);
+        const segundos = Math.floor((diff % 60000) / 1000);
+        setMensajeInicio(
+          `COMIENZA EN ${minutos}:${segundos.toString().padStart(2, "0")}`
+        );
+      } else {
+        setMensajeInicio("YA COMIENZA ¡BUENA SUERTE!");
+        clearInterval(interval);
+
+        setTimeout(() => {
+          setMostrarAviso(false);
+          setMensajeInicio("");
+        }, 11000);
+      }
+    }, 0);
+
+    return () => clearInterval(interval);
+  }, [partida?.fecha_hora_jugada]);
+
+  useEffect(() => {
     if (!socket || !user?.username) return;
 
     socket.emit("login", user.username);
@@ -171,16 +224,6 @@ const GamePlay = () => {
     socket.emit("unirseAPartidaActual", (data) => {
       if (!data?.partida) {
         setModoEspectador(true);
-        return;
-      }
-
-      const inicio = new Date(data.partida.fecha_hora_jugada).getTime();
-      const ahora = new Date().getTime();
-      const diferenciaMs = inicio - ahora;
-
-      if (diferenciaMs > 5 * 60 * 1000) {
-        alert("Solo podés ingresar a la partida 5 minutos antes del inicio.");
-        navigate("/welcome", { replace: true });
         return;
       }
 
@@ -238,44 +281,6 @@ const GamePlay = () => {
       }));
     });
   }, [socket, user?.username]);
-
-  useEffect(() => {
-    if (!partida?.fecha_hora_jugada) return;
-
-    const inicio = new Date(partida.fecha_hora_jugada).getTime();
-    const ahora = new Date().getTime();
-
-    if (ahora >= inicio) {
-      setMostrarAviso(false);
-      setMensajeInicio("");
-      return;
-    }
-
-    setMostrarAviso(true);
-
-    const interval = setInterval(() => {
-      const ahoraActualizado = new Date().getTime();
-      const diff = inicio - ahoraActualizado;
-
-      if (diff > 0) {
-        const minutos = Math.floor(diff / 60000);
-        const segundos = Math.floor((diff % 60000) / 1000);
-        setMensajeInicio(
-          `COMIENZA EN ${minutos}:${segundos.toString().padStart(2, "0")}`
-        );
-      } else {
-        setMensajeInicio("YA COMIENZA ¡BUENA SUERTE!");
-        clearInterval(interval);
-
-        setTimeout(() => {
-          setMostrarAviso(false);
-          setMensajeInicio("");
-        }, 11000);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [partida?.fecha_hora_jugada]);
 
   useEffect(() => {
     if (!socket) return;
@@ -477,6 +482,17 @@ const GamePlay = () => {
         </button>
         <button onClick={handleBack}>VOLVER</button>
       </div>
+      {bloqueado && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <p>
+              No podés ingresar todavía. Volvé cuando falten 5 minutos o menos
+              para que inicie la partida.
+            </p>
+            <button onClick={() => navigate("/welcome")}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

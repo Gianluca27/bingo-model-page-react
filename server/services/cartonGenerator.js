@@ -25,48 +25,64 @@ function generarCartonesEnLote(cantidad, callback) {
 }
 
 function generarCartonValido() {
-  const carton = Array.from({ length: 3 }, () => Array(9).fill(null));
-  const columnas = Array.from({ length: 9 }, () => []);
-  const usadosPorColumna = Array(9).fill(0);
+  // Paso 1: Generar por columnas los grupos posibles
+  const columnas = Array.from({ length: 9 }, (_, i) => {
+    const min = i === 0 ? 1 : i * 10;
+    const max = i === 8 ? 90 : i * 10 + 9;
+    const nums = Array.from({ length: max - min + 1 }, (_, j) => min + j);
+    return mezclar(nums).slice(0, 3); // máx 3 por columna
+  });
 
-  const numerosDisponibles = mezclar(
-    Array.from({ length: 90 }, (_, i) => i + 1)
-  );
-  const seleccionados = [];
-
-  for (
-    let i = 0;
-    i < numerosDisponibles.length && seleccionados.length < 15;
-    i++
-  ) {
-    const n = numerosDisponibles[i];
-    const col = Math.floor((n - 1) / 10);
-    if (usadosPorColumna[col] < 3) {
-      seleccionados.push({ n, col });
-      usadosPorColumna[col]++;
+  // Paso 2: Elegir una cantidad de números por columna que sumen 15
+  let distribucion;
+  while (true) {
+    distribucion = Array(9)
+      .fill(0)
+      .map(() => 0);
+    let total = 0;
+    while (total < 15) {
+      const i = Math.floor(Math.random() * 9);
+      if (distribucion[i] < 3) {
+        distribucion[i]++;
+        total++;
+      }
     }
+    if (distribucion.every((x) => x > 0)) break; // al menos 1 por columna
   }
+
+  // Paso 3: Seleccionar los números según la distribución
+  const cartonPorColumna = columnas.map((nums, i) =>
+    nums.slice(0, distribucion[i]).sort((a, b) => a - b)
+  );
+
+  // Paso 4: Armar matriz 3x9 con exactamente 5 números por fila
+  const carton = Array.from({ length: 3 }, () => Array(9).fill(null));
+  const cuentaFila = Array(3).fill(0);
 
   for (let col = 0; col < 9; col++) {
-    if (usadosPorColumna[col] === 0) return generarCartonValido();
-  }
-
-  const filas = [[], [], []];
-  for (let i = 0; i < seleccionados.length; i++) {
-    const { n, col } = seleccionados[i];
-    let filaAsignada = filas.findIndex((f) => f.length < 5 && !f.includes(col));
-    if (filaAsignada === -1)
-      filaAsignada = filas.findIndex((f) => f.length < 5);
-    if (filaAsignada !== -1) filas[filaAsignada].push({ col, n });
-  }
-
-  for (let fila = 0; fila < 3; fila++) {
-    for (const { col, n } of filas[fila]) {
-      carton[fila][col] = n;
+    const nums = cartonPorColumna[col];
+    const posiblesFilas = [0, 1, 2];
+    for (const n of nums) {
+      // buscar fila disponible con menos de 5 números
+      posiblesFilas.sort((a, b) => cuentaFila[a] - cuentaFila[b]);
+      const fila = posiblesFilas.find(
+        (f) => carton[f][col] === null && cuentaFila[f] < 5
+      );
+      if (fila !== undefined) {
+        carton[fila][col] = n;
+        cuentaFila[fila]++;
+      }
     }
   }
 
-  return carton;
+  const filasValidas = cuentaFila.every((n) => n === 5);
+  const totalValidos = carton.flat().filter((n) => n !== null).length === 15;
+  const columnasValidas = carton[0]
+    .map((_, col) => carton[0][col] || carton[1][col] || carton[2][col])
+    .every(Boolean);
+
+  if (filasValidas && totalValidos && columnasValidas) return carton;
+  return generarCartonValido();
 }
 
 function mezclar(arr) {

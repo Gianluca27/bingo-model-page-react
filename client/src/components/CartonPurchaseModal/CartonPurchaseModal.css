@@ -46,11 +46,18 @@
   font-weight: 600;
 }
 
+.card-box {
+  padding-top: 10px;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.5);
+}
+
 .input-group {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0;
-  width: 60%;
+  margin: 10px auto;
+  width: 50%;
 }
 
 .input-group label {
@@ -72,10 +79,16 @@
   margin-top: 10px;
 }
 
+.info-usuario {
+  margin-top: 15px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.5);
+}
+
 .btn-group {
-  margin-top: 20px;
+  margin: 20px auto 0;
   display: flex;
-  justify-content: space-between;
 }
 
 .btn-confirm,

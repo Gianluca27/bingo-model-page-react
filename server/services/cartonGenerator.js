@@ -1,4 +1,3 @@
-// services/cartonGenerator.js
 const db = require("../models/db");
 
 function obtenerUltimoNumeroCarton(callback) {
@@ -25,15 +24,13 @@ function generarCartonesEnLote(cantidad, callback) {
 }
 
 function generarCartonValido() {
-  // Paso 1: Generar por columnas los grupos posibles
   const columnas = Array.from({ length: 9 }, (_, i) => {
     const min = i === 0 ? 1 : i * 10;
     const max = i === 8 ? 90 : i * 10 + 9;
     const nums = Array.from({ length: max - min + 1 }, (_, j) => min + j);
-    return mezclar(nums).slice(0, 3); // máx 3 por columna
+    return mezclar(nums).slice(0, 3);
   });
 
-  // Paso 2: Elegir una cantidad de números por columna que sumen 15
   let distribucion;
   while (true) {
     distribucion = Array(9)
@@ -47,15 +44,13 @@ function generarCartonValido() {
         total++;
       }
     }
-    if (distribucion.every((x) => x > 0)) break; // al menos 1 por columna
+    if (distribucion.every((x) => x > 0)) break;
   }
 
-  // Paso 3: Seleccionar los números según la distribución
   const cartonPorColumna = columnas.map((nums, i) =>
     nums.slice(0, distribucion[i]).sort((a, b) => a - b)
   );
 
-  // Paso 4: Armar matriz 3x9 con exactamente 5 números por fila
   const carton = Array.from({ length: 3 }, () => Array(9).fill(null));
   const cuentaFila = Array(3).fill(0);
 
@@ -63,7 +58,6 @@ function generarCartonValido() {
     const nums = cartonPorColumna[col];
     const posiblesFilas = [0, 1, 2];
     for (const n of nums) {
-      // buscar fila disponible con menos de 5 números
       posiblesFilas.sort((a, b) => cuentaFila[a] - cuentaFila[b]);
       const fila = posiblesFilas.find(
         (f) => carton[f][col] === null && cuentaFila[f] < 5
@@ -74,7 +68,6 @@ function generarCartonValido() {
       }
     }
   }
-
   const filasValidas = cuentaFila.every((n) => n === 5);
   const totalValidos = carton.flat().filter((n) => n !== null).length === 15;
   const columnasValidas = carton[0]

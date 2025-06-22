@@ -5,7 +5,9 @@ function obtenerUltimoNumeroCarton(callback) {
     "SELECT MAX(numero_carton) AS max FROM CartonesAsignados",
     (err, row) => {
       if (err) return callback(0);
-      callback(row?.max || 0);
+      callback(
+        typeof row?.max === "number" ? row.max : parseInt(row?.max) || 0
+      );
     }
   );
 }

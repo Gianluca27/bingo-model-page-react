@@ -356,16 +356,10 @@ function registrarSockets(io) {
         (err, rows) => {
           const cartones =
             !err && rows.length > 0
-              ? rows.map((r) => {
-                  const plano = JSON.parse(r.contenido);
-                  return Array.isArray(plano[0])
-                    ? plano
-                    : [
-                        plano.slice(0, 9),
-                        plano.slice(9, 18),
-                        plano.slice(18, 27),
-                      ];
-                })
+              ? rows.map((r) => ({
+                  numero: r.numero_carton,
+                  contenido: JSON.parse(r.contenido).flat(), // array plano de 27 elementos
+                }))
               : [];
 
           const bolillas = gameManager.obtenerBolillasEmitidas();

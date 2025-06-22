@@ -234,6 +234,7 @@ const GamePlay = () => {
       );
 
       setCartones(cartonesValidos);
+      console.log(cartones);
       cartonesRef.current = cartonesValidos.map((c) => c.contenido);
       marcadasCartonesRef.current = [];
       setModoEspectador(cartonesValidos.length === 0);
@@ -245,7 +246,7 @@ const GamePlay = () => {
 
         const marcadas = [];
         cartonesValidos.forEach((carton) => {
-          carton.forEach((celda) => {
+          carton.contenido.forEach((celda) => {
             if (data.bolillas.includes(celda)) {
               marcadas.push(celda);
             }
@@ -419,33 +420,31 @@ const GamePlay = () => {
             </div>
           </div>
         </div>
-        {modalPremio && (
-          <div className="modal-premio">
-            <div className="modal-contenido">
-              <h2>¡{modalPremio.tipo}!</h2>
-              <p>
-                <strong>Ganador:</strong> {modalPremio.ganadores.join(", ")}
-              </p>
-              <p>
-                <strong>Premio:</strong> $
-                {modalPremio.monto.toLocaleString("es-AR")}
-              </p>
-              <button onClick={() => setModalPremio(null)}>Cerrar</button>
-            </div>
-          </div>
-        )}
       </div>
-      {mostrarAviso && <h2 className="aviso">{mensajeInicio}</h2>}
-      <div
-        className="zona-cartones"
-        style={{ maxHeight: "400px", overflowY: "auto" }}
-      >
+      {modalPremio && (
+        <div className="modal-premio">
+          <div className="modal-contenido">
+            <h2>¡{modalPremio.tipo}!</h2>
+            <p>
+              <strong>Ganador:</strong> {modalPremio.ganadores.join(", ")}
+            </p>
+            <p>
+              <strong>Premio:</strong> $
+              {modalPremio.monto.toLocaleString("es-AR")}
+            </p>
+            <button onClick={() => setModalPremio(null)}>Cerrar</button>
+          </div>
+        </div>
+      )}
+      {!modoEspectador && cartones.length > 0 && (
+        <h3 className="titulo-cartones">Tus cartones:</h3>
+      )}
+      <div className="zona-cartones">
         {modoEspectador && (
           <div className="modo-espectador">
             🔍 Estás viendo la partida como espectador. No recibirás premios.
           </div>
         )}
-        {!modoEspectador && cartones.length > 0 && <h3>Tus cartones:</h3>}
         {cartones
           .filter(
             (c) => Array.isArray(c?.contenido) && c.contenido.length === 27

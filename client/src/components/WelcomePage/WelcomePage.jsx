@@ -67,14 +67,34 @@ const WelcomePage = () => {
       }
     };
 
+    const actualizarPartidaVisible = async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/partidas");
+        const data = res.data;
+
+        const activa = data.find((p) => p.estado === "activa");
+        if (activa) {
+          setPartidaVisible(activa);
+        } else {
+          const futura = data
+            .filter((p) => p.estado === "pendiente")
+            .sort(
+              (a, b) =>
+                new Date(a.fecha_hora_jugada) - new Date(b.fecha_hora_jugada)
+            )[0];
+          setPartidaVisible(futura || null);
+        }
+      } catch (err) {
+        console.error("Error al actualizar partida visible:", err);
+      }
+    };
+
     socket.on("actualizarPartida", actualizarPartida);
-    socket.on("finSorteo", () => {
-      setPartidaVisible(null);
-    });
+    socket.on("finSorteo", actualizarPartidaVisible);
 
     return () => {
       socket.off("actualizarPartida", actualizarPartida);
-      socket.off("finSorteo");
+      socket.off("finSorteo", actualizarPartidaVisible);
     };
   }, [socket, partidaVisible]);
 

@@ -31,15 +31,21 @@ function registrarSockets(io) {
       });
     }
 
-    socket.on("login", (nombre) => {
+    socket.on("login", (nombre, callback) => {
       db.get(
         "SELECT creditos FROM Usuarios WHERE usuario = ?",
         [nombre],
         (err, row) => {
-          if (err || !row) return socket.emit("error", "Usuario no encontrado");
+          if (err || !row) {
+            socket.emit("error", "Usuario no encontrado");
+            if (callback) callback({ ok: false });
+            return;
+          }
+
           socket.usuario = nombre;
           usuarios[nombre] = { creditos: row.creditos };
           usuariosConectados[nombre] = socket.id;
+
           db.get(
             `SELECT id_partida FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
             [],
@@ -62,6 +68,8 @@ function registrarSockets(io) {
                   }
                 );
               }
+
+              if (callback) callback({ ok: true }); // ✅ confirmación al cliente
             }
           );
         }

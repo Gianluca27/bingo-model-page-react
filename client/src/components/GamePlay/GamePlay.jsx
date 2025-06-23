@@ -211,10 +211,8 @@ const GamePlay = () => {
 
   useEffect(() => {
     socket.on("nuevaBolilla", handleNewBolilla);
-    socket.on("finSorteo", () => setDrawnNumbers([]));
     return () => {
       socket.off("nuevaBolilla", handleNewBolilla);
-      socket.off("finSorteo");
     };
   }, [handleNewBolilla, socket]);
 
@@ -230,6 +228,15 @@ const GamePlay = () => {
 
     if (!partidaYaIniciada && !faltanMenosDe5Min) {
       setBloqueado(true);
+    }
+
+    if (faltanMenosDe5Min && !partidaYaIniciada) {
+      setCartones([]);
+      cartonesRef.current = [];
+      setDrawnNumbers([]);
+      marcadasCartonesRef.current = [];
+      setContador(0);
+      setBolillaActual(null);
     }
   }, [partida]);
 
@@ -264,7 +271,7 @@ const GamePlay = () => {
         setTimeout(() => {
           setMostrarAviso(false);
           setMensajeInicio("");
-        }, 11000);
+        }, 8000);
       }
     }, 0);
 
@@ -311,7 +318,7 @@ const GamePlay = () => {
         (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
       );
 
-      const ordenados = ordenarCartonesPorProgreso(
+      const ordenados = ordenarCartonesPorLineas(
         cartonesValidos,
         data.bolillas || []
       );
@@ -443,7 +450,7 @@ const GamePlay = () => {
             <p>
               <strong>SORTEO DEL:</strong>{" "}
               {formatFecha(partida?.fecha_hora_jugada) || "–"}
-              Hs
+              HS
             </p>
             <p>
               <strong>BOLA TOPE:</strong> 39

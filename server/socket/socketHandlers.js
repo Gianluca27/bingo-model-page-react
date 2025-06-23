@@ -157,13 +157,14 @@ function registrarSockets(io) {
 
       if (typeof callback !== "function") return;
 
-      // Si hay una partida activa, buscarla en la base para asegurar que tenga los premios
+      // Si hay una partida activa, buscarla completa en la DB
       if (partidaActual && partidaActual.estado === "activa") {
         db.get(
           `SELECT * FROM Partidas WHERE id_partida = ?`,
           [partidaActual.id_partida],
           (err, partidaCompleta) => {
-            if (err || !partidaCompleta) return callback(null);
+            if (err || !partidaCompleta)
+              return callback({ error: "NO_HAY_PARTIDA" });
 
             callback({
               id_partida: partidaCompleta.id_partida,
@@ -179,7 +180,7 @@ function registrarSockets(io) {
         return;
       }
 
-      // Si no hay partida activa, devolver la próxima pendiente
+      // Si no hay activa, revisar la próxima pendiente
       db.get(
         `SELECT * FROM Partidas 
          WHERE estado = 'pendiente' 
@@ -187,8 +188,28 @@ function registrarSockets(io) {
          LIMIT 1`,
         [],
         (err, partidaPendiente) => {
-          if (err || !partidaPendiente) return callback(null);
-          callback(partidaPendiente);
+          if (err || !partidaPendiente) {
+            return callback({ error: "NO_HAY_PARTIDA" });
+          }
+
+          const ahora = Date.now();
+          const inicio = new Date(partidaPendiente.fecha_hora_jugada).getTime();
+          const faltanMenosDe5Min =
+            inicio - ahora <= 5 * 60 * 1000 && inicio - ahora > 0;
+
+          if (faltanMenosDe5Min) {
+            return callback({
+              id_partida: partidaPendiente.id_partida,
+              fecha_hora_jugada: partidaPendiente.fecha_hora_jugada,
+              valor_carton: partidaPendiente.valor_carton,
+              premio_linea: partidaPendiente.premio_linea,
+              premio_bingo: partidaPendiente.premio_bingo,
+              premio_acumulado: partidaPendiente.premio_acumulado,
+              estado: partidaPendiente.estado,
+            });
+          } else {
+            return callback({ error: "FALTAN_MAS_DE_5_MINUTOS" });
+          }
         }
       );
     });

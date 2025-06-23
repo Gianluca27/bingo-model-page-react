@@ -221,13 +221,21 @@ const GamePlay = () => {
 
     const ahora = new Date();
     const inicio = new Date(partida.fecha_hora_jugada);
-    const diferenciaMinutos = (inicio - ahora) / 60000;
+    const diferenciaMs = inicio - ahora;
+    const diferenciaMinutos = diferenciaMs / 60000;
 
     const partidaYaIniciada = partida.estado === "activa";
-    const faltanMenosDe5Min = diferenciaMinutos <= 5;
+    const faltanMenosDe5Min = diferenciaMinutos <= 5 && diferenciaMinutos > 0;
+    const partidaEnPasado = diferenciaMs < 0 && partida.estado !== "activa";
 
     if (!partidaYaIniciada && !faltanMenosDe5Min) {
       setBloqueado(true);
+      return;
+    }
+
+    if (partidaEnPasado) {
+      setBloqueado(true);
+      return;
     }
 
     if (faltanMenosDe5Min && !partidaYaIniciada) {
@@ -237,8 +245,30 @@ const GamePlay = () => {
       marcadasCartonesRef.current = [];
       setContador(0);
       setBolillaActual(null);
+
+      socket.emit("unirseAPartidaActual", (data) => {
+        if (data?.cartones && data.cartones.length > 0) {
+          cargarCartones(data);
+        }
+      });
     }
   }, [partida]);
+
+  useEffect(() => {
+    if (!partida?.fecha_hora_jugada || !partida.estado) return;
+
+    const ahora = new Date();
+    const inicio = new Date(partida.fecha_hora_jugada);
+    const diferenciaMinutos = (inicio - ahora) / 60000;
+
+    const partidaActiva = partida.estado === "activa";
+    const faltanMenosDe5Min = diferenciaMinutos <= 5;
+
+    if (!partidaActiva && !faltanMenosDe5Min) {
+      alert("❌ Esta partida aún no está disponible.");
+      navigate("/welcome");
+    }
+  }, [partida, navigate]);
 
   useEffect(() => {
     if (!partida?.fecha_hora_jugada) return;

@@ -242,8 +242,14 @@ const WelcomePage = () => {
             className="btn-play"
             onClick={() => {
               socket.emit("solicitarInfoPartida", (partida) => {
-                if (!partida) {
-                  alert("❌ No hay ninguna partida próxima por comenzar.");
+                if (!partida || partida.error) {
+                  if (partida?.error === "FALTAN_MAS_DE_5_MINUTOS") {
+                    alert(
+                      `⏳ Aún no se puede ingresar. Esperá a que falten menos de 5 minutos para entrar al próximo sorteo.`
+                    );
+                  } else {
+                    alert("❌ No hay ninguna partida próxima por comenzar.");
+                  }
                   return;
                 }
 

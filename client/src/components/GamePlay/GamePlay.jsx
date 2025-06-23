@@ -271,6 +271,36 @@ const GamePlay = () => {
   }, [partida, navigate]);
 
   useEffect(() => {
+    if (!partida?.fecha_hora_jugada || partida.estado === "activa") return;
+
+    const interval = setInterval(() => {
+      const ahora = Date.now();
+      const inicio = new Date(partida.fecha_hora_jugada).getTime();
+      const faltanMenosDe5Min =
+        inicio - ahora <= 5 * 60 * 1000 && inicio > ahora;
+
+      const partidaYaIniciada = partida.estado === "activa";
+
+      if (faltanMenosDe5Min && !partidaYaIniciada) {
+        setCartones([]);
+        cartonesRef.current = [];
+        setDrawnNumbers([]);
+        marcadasCartonesRef.current = [];
+        setContador(0);
+        setBolillaActual(null);
+
+        socket.emit("unirseAPartidaActual", (data) => {
+          if (data?.cartones && data.cartones.length > 0) {
+            cargarCartones(data, false);
+          }
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [socket, partida, cartones.length]);
+
+  useEffect(() => {
     if (!partida?.fecha_hora_jugada) return;
 
     const inicio = new Date(partida.fecha_hora_jugada).getTime();
@@ -308,6 +338,45 @@ const GamePlay = () => {
     return () => clearInterval(interval);
   }, [partida?.fecha_hora_jugada]);
 
+  const cargarCartones = (data) => {
+    const partidaEsActiva = partida?.estado === "activa";
+
+    const cartonesValidos = (data.cartones || []).filter(
+      (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+    );
+
+    cartonesRef.current = cartonesValidos;
+    setModoEspectador(cartonesValidos.length === 0);
+
+    if (partidaEsActiva) {
+      // 🔁 Solo reinicio si es necesario
+      const bolillas = Array.isArray(data.bolillas) ? data.bolillas : [];
+      setDrawnNumbers(bolillas);
+      setContador(bolillas.length);
+      setBolillaActual(bolillas.at(-1) ?? null);
+
+      const ordenados = ordenarCartonesPorLineas(cartonesValidos, bolillas);
+      setCartones(ordenados);
+
+      const marcadas = [];
+      cartonesValidos.forEach((carton) => {
+        carton.contenido.forEach((celda) => {
+          if (bolillas.includes(celda)) {
+            marcadas.push(celda);
+          }
+        });
+      });
+      marcadasCartonesRef.current = marcadas;
+    } else {
+      // ✅ Si la partida no arrancó, se limpian los estados
+      setDrawnNumbers([]);
+      setContador(0);
+      setBolillaActual(null);
+      marcadasCartonesRef.current = [];
+      setCartones(cartonesValidos);
+    }
+  };
+
   useEffect(() => {
     if (!socket || !user?.username) return;
 
@@ -341,38 +410,6 @@ const GamePlay = () => {
           cargarCartones(data);
         }
       });
-    };
-
-    const cargarCartones = (data) => {
-      const cartonesValidos = (data.cartones || []).filter(
-        (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
-      );
-
-      const ordenados = ordenarCartonesPorLineas(
-        cartonesValidos,
-        data.bolillas || []
-      );
-      setCartones(ordenados);
-
-      cartonesRef.current = cartonesValidos;
-
-      const marcadas = [];
-      cartonesValidos.forEach((carton) => {
-        carton.contenido.forEach((celda) => {
-          if (data.bolillas.includes(celda)) {
-            marcadas.push(celda);
-          }
-        });
-      });
-      marcadasCartonesRef.current = marcadas;
-
-      setModoEspectador(cartonesValidos.length === 0);
-
-      if (Array.isArray(data.bolillas)) {
-        setDrawnNumbers(data.bolillas);
-        setContador(data.bolillas.length);
-        setBolillaActual(data.bolillas.at(-1) ?? null);
-      }
     };
 
     intentarUnirse();

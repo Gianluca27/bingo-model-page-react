@@ -243,13 +243,9 @@ const WelcomePage = () => {
             onClick={() => {
               socket.emit("solicitarInfoPartida", (partida) => {
                 if (!partida || partida.error) {
-                  if (partida?.error === "FALTAN_MAS_DE_5_MINUTOS") {
-                    alert(
-                      `⏳ Aún no se puede ingresar. Esperá a que falten menos de 5 minutos para entrar al próximo sorteo.`
-                    );
-                  } else {
-                    alert("❌ No hay ninguna partida próxima por comenzar.");
-                  }
+                  alert(
+                    "❌ No hay ninguna partida próxima. Esperá a que se programe un nuevo sorteo."
+                  );
                   return;
                 }
 
@@ -257,21 +253,27 @@ const WelcomePage = () => {
                 const inicio = new Date(partida.fecha_hora_jugada);
                 const diferenciaMs = inicio - ahora;
 
-                const yaEmpezo = diferenciaMs <= 0;
+                const estadoValido =
+                  partida.estado === "pendiente" || partida.estado === "activa";
                 const faltanMenosDe5Min = diferenciaMs <= 5 * 60 * 1000;
+                const yaEmpezo = diferenciaMs <= 0;
+
+                if (!estadoValido) {
+                  alert("❌ La próxima partida aún no está disponible.");
+                  return;
+                }
 
                 if (
                   partida.estado === "activa" ||
                   yaEmpezo ||
                   faltanMenosDe5Min
                 ) {
-                  socket.emit("obtenerCartonesDisponibles");
                   navigate("/gameplay");
                 } else {
                   alert(
-                    `⏳ Aún no se puede ingresar. La partida comienza a las ${formatFecha(
+                    `⏳ Solo podés ingresar cuando falten 5 minutos o menos para que inicie la partida. La próxima comienza a las ${formatFecha(
                       partida.fecha_hora_jugada
-                    )} HS. Intentelo de nuevo cuando falten 5 minutos.`
+                    )} HS.`
                   );
                 }
               });

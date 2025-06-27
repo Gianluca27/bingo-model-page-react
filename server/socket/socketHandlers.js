@@ -15,19 +15,20 @@ function registrarSockets(io) {
   const usuariosConectados = {};
   gameManager.setUsuariosMap(usuarios);
   gameManager.setSocketsMap(usuariosConectados);
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     console.log("🧲 Nuevo socket conectado:", socket.id);
 
-    if (gameManager.estaPartidaEnJuego()) {
-      const partidaActiva = gameManager.obtenerPartidaActual();
+    const partidaActiva = await gameManager.obtenerPartidaActual();
+
+    if (partidaActiva && partidaActiva.estado === "activa") {
       socket.emit("estadoActual", {
         bolillasEmitidas: gameManager.obtenerBolillasEmitidas(),
-        partidaId: partidaActiva?.id_partida || null,
-        valorCarton: partidaActiva?.valor_carton,
-        premioLinea: partidaActiva?.premio_linea,
-        premioBingo: partidaActiva?.premio_bingo,
-        premioAcumulado: partidaActiva?.premio_acumulado,
-        fechaSorteo: partidaActiva?.fecha_hora_jugada,
+        partidaId: partidaActiva.id_partida,
+        valorCarton: partidaActiva.valor_carton,
+        premioLinea: partidaActiva.premio_linea,
+        premioBingo: partidaActiva.premio_bingo,
+        premioAcumulado: partidaActiva.premio_acumulado,
+        fechaSorteo: partidaActiva.fecha_hora_jugada,
       });
     }
 
@@ -152,12 +153,49 @@ function registrarSockets(io) {
       );
     });
 
-    socket.on("solicitarInfoPartida", (callback) => {
-      const partidaActual = gameManager.obtenerPartidaActual();
+    socket.on("solicitarInfoPartida", async (callback) => {
+      const partidaActual = await gameManager.obtenerPartidaActual();
 
       if (typeof callback !== "function") return;
 
-      // Si hay una partida activa, buscarla completa en la DB
+      // ❌ Si está finalizada, no la devuelvas como activa
+      if (partidaActual && partidaActual.estado === "finalizada") {
+        return db.get(
+          `SELECT * FROM Partidas 
+           WHERE estado = 'pendiente' 
+           ORDER BY fecha_hora_jugada ASC 
+           LIMIT 1`,
+          [],
+          (err, partidaPendiente) => {
+            if (err || !partidaPendiente) {
+              return callback({ error: "NO_HAY_PARTIDA" });
+            }
+
+            const ahora = Date.now();
+            const inicio = new Date(
+              partidaPendiente.fecha_hora_jugada
+            ).getTime();
+            const faltanMenosDe5Min =
+              inicio - ahora <= 5 * 60 * 1000 && inicio - ahora > 0;
+
+            if (faltanMenosDe5Min) {
+              return callback({
+                id_partida: partidaPendiente.id_partida,
+                fecha_hora_jugada: partidaPendiente.fecha_hora_jugada,
+                valor_carton: partidaPendiente.valor_carton,
+                premio_linea: partidaPendiente.premio_linea,
+                premio_bingo: partidaPendiente.premio_bingo,
+                premio_acumulado: partidaPendiente.premio_acumulado,
+                estado: partidaPendiente.estado,
+              });
+            } else {
+              return callback({ error: "FALTAN_MAS_DE_5_MINUTOS" });
+            }
+          }
+        );
+      }
+
+      // ✅ Si hay una partida activa, devolvé esa
       if (partidaActual && partidaActual.estado === "activa") {
         db.get(
           `SELECT * FROM Partidas WHERE id_partida = ?`,
@@ -179,8 +217,6 @@ function registrarSockets(io) {
         );
         return;
       }
-
-      // Si no hay activa, revisar la próxima pendiente
       db.get(
         `SELECT * FROM Partidas 
          WHERE estado = 'pendiente' 
@@ -192,24 +228,15 @@ function registrarSockets(io) {
             return callback({ error: "NO_HAY_PARTIDA" });
           }
 
-          const ahora = Date.now();
-          const inicio = new Date(partidaPendiente.fecha_hora_jugada).getTime();
-          const faltanMenosDe5Min =
-            inicio - ahora <= 5 * 60 * 1000 && inicio - ahora > 0;
-
-          if (faltanMenosDe5Min) {
-            return callback({
-              id_partida: partidaPendiente.id_partida,
-              fecha_hora_jugada: partidaPendiente.fecha_hora_jugada,
-              valor_carton: partidaPendiente.valor_carton,
-              premio_linea: partidaPendiente.premio_linea,
-              premio_bingo: partidaPendiente.premio_bingo,
-              premio_acumulado: partidaPendiente.premio_acumulado,
-              estado: partidaPendiente.estado,
-            });
-          } else {
-            return callback({ error: "FALTAN_MAS_DE_5_MINUTOS" });
-          }
+          return callback({
+            id_partida: partidaPendiente.id_partida,
+            fecha_hora_jugada: partidaPendiente.fecha_hora_jugada,
+            valor_carton: partidaPendiente.valor_carton,
+            premio_linea: partidaPendiente.premio_linea,
+            premio_bingo: partidaPendiente.premio_bingo,
+            premio_acumulado: partidaPendiente.premio_acumulado,
+            estado: partidaPendiente.estado,
+          });
         }
       );
     });
@@ -363,8 +390,8 @@ function registrarSockets(io) {
       );
     });
 
-    socket.on("unirseAPartidaActual", (callback) => {
-      const partida = gameManager.obtenerPartidaActual();
+    socket.on("unirseAPartidaActual", async (callback) => {
+      const partida = await gameManager.obtenerPartidaActual();
 
       if (!partida) {
         return callback({ partida: null });

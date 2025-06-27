@@ -221,5 +221,40 @@ module.exports = {
   setCombinacion,
   estaPartidaEnJuego,
   obtenerBolillasEmitidas,
-  obtenerPartidaActual: () => partidaActual,
+  obtenerPartidaActual: async () => {
+    return new Promise((resolve, reject) => {
+      const ahora = Date.now();
+
+      // Buscar partida activa
+      db.get(
+        `SELECT * FROM Partidas WHERE estado = 'activa' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
+        [],
+        (err, partidaActiva) => {
+          if (err) return reject(err);
+          if (partidaActiva) return resolve(partidaActiva);
+
+          // Si no hay activa, buscar próxima pendiente válida
+          db.get(
+            `SELECT * FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
+            [],
+            (err2, partidaPendiente) => {
+              if (err2 || !partidaPendiente) return resolve(null);
+
+              const inicio = new Date(
+                partidaPendiente.fecha_hora_jugada
+              ).getTime();
+              const faltanMenosDe5Min =
+                inicio - ahora <= 5 * 60 * 1000 && inicio - ahora > 0;
+
+              if (faltanMenosDe5Min) {
+                resolve(partidaPendiente);
+              } else {
+                resolve(null);
+              }
+            }
+          );
+        }
+      );
+    });
+  },
 };

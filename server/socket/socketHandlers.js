@@ -398,7 +398,13 @@ function registrarSockets(io) {
       }
 
       const usuario = socket.usuario;
-      if (!usuario) {
+      const ahora = Date.now();
+      const inicio = new Date(partida.fecha_hora_jugada).getTime();
+      const faltanMenosDe5Min =
+        inicio - ahora <= 5 * 60 * 1000 && inicio - ahora > 0;
+      const esActiva = partida.estado === "activa";
+
+      if (!usuario || (!esActiva && !faltanMenosDe5Min)) {
         return callback({
           partida,
           bolillas: gameManager.obtenerBolillasEmitidas(),
@@ -414,7 +420,7 @@ function registrarSockets(io) {
             !err && rows.length > 0
               ? rows.map((r) => ({
                   numero: r.numero_carton,
-                  contenido: JSON.parse(r.contenido).flat(), // array plano de 27 elementos
+                  contenido: JSON.parse(r.contenido).flat(),
                 }))
               : [];
 

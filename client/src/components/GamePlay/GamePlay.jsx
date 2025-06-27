@@ -255,7 +255,6 @@ const GamePlay = () => {
       const esPartidaActiva = data.partida.estado === "activa";
       const faltanMenosDe5Min =
         diferenciaMilisegundos > 0 && diferenciaMilisegundos <= 5 * 60 * 1000;
-
       if (!esPartidaActiva && !faltanMenosDe5Min) {
         setBloqueado(true);
         return;
@@ -271,6 +270,7 @@ const GamePlay = () => {
         (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
       );
 
+      // 🟢 Mostrar cartones si la partida está activa o faltan 5 minutos o menos
       if (esPartidaActiva || faltanMenosDe5Min) {
         cargarCartones({ ...data, cartones: cartonesValidos });
       } else {

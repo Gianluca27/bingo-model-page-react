@@ -236,51 +236,48 @@ const GamePlay = () => {
   useEffect(() => {
     if (!socket || !user?.username) return;
 
-    socket.emit("login", user.username);
-
-    socket.emit("unirseAPartidaActual", (data) => {
-      if (!data?.partida) {
-        setModoEspectador(true);
-        setBloqueado(true);
+    socket.emit("login", user.username, (respuesta) => {
+      if (!respuesta?.ok) {
+        console.warn("❌ Falló el login del socket");
         return;
       }
 
-      setPartida(data.partida);
-      setFechaSorteo(data.partida.fecha_hora_jugada);
+      socket.emit("unirseAPartidaActual", (data) => {
+        if (!data?.partida) {
+          setModoEspectador(true);
+          setBloqueado(true);
+          return;
+        }
 
-      const ahora = new Date();
-      const inicio = parseFechaComoLocal(data.partida.fecha_hora_jugada);
-      const diferenciaMilisegundos = inicio.getTime() - ahora.getTime();
+        setPartida(data.partida);
+        setFechaSorteo(data.partida.fecha_hora_jugada);
 
-      const esPartidaActiva = data.partida.estado === "activa";
-      const faltanMenosDe5Min =
-        diferenciaMilisegundos > 0 && diferenciaMilisegundos <= 5 * 60 * 1000;
-      if (!esPartidaActiva && !faltanMenosDe5Min) {
-        setBloqueado(true);
-        return;
-      }
+        const ahora = new Date();
+        const inicio = parseFechaComoLocal(data.partida.fecha_hora_jugada);
+        const diferenciaMilisegundos = inicio.getTime() - ahora.getTime();
 
-      if (Array.isArray(data.bolillas)) {
-        setDrawnNumbers(data.bolillas);
-        setContador(data.bolillas.length);
-        setBolillaActual(data.bolillas.at(-1) ?? null);
-      }
+        const esPartidaActiva = data.partida.estado === "activa";
+        const faltanMenosDe5Min =
+          diferenciaMilisegundos > 0 && diferenciaMilisegundos <= 5 * 60 * 1000;
 
-      const cartonesValidos = (data.cartones || []).filter(
-        (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
-      );
+        if (!esPartidaActiva && !faltanMenosDe5Min) {
+          setBloqueado(true);
+          return;
+        }
 
-      // 🟢 Mostrar cartones si la partida está activa o faltan 5 minutos o menos
-      if (esPartidaActiva || faltanMenosDe5Min) {
+        if (Array.isArray(data.bolillas)) {
+          setDrawnNumbers(data.bolillas);
+          setContador(data.bolillas.length);
+          setBolillaActual(data.bolillas.at(-1) ?? null);
+        }
+
+        const cartonesValidos = (data.cartones || []).filter(
+          (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+        );
+
         cargarCartones({ ...data, cartones: cartonesValidos });
-      } else {
-        setDrawnNumbers([]);
-        setContador(0);
-        setBolillaActual(null);
-        setCartones([]);
-        marcadasCartonesRef.current = [];
-        setModoEspectador(true);
-      }
+        // setModoEspectador(!esPartidaActiva);
+      });
     });
 
     socket.emit("solicitarInfoPartida", (nuevaPartida) => {

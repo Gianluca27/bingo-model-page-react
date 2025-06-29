@@ -17,6 +17,7 @@ import PrivateRoute from "./components/PrivateRoute/PrivateRoute";
 import { AuthProvider } from "./context/AuthContext";
 import AdminPanel from "./components/AdminPanel/AdminPanel";
 import GamePlay from "./components/GamePlay/GamePlay";
+import ComprarCreditos from "./components/BuyCredits/ComprarCreditos";
 
 const App = () => {
   return (
@@ -31,6 +32,14 @@ const App = () => {
             element={
               <PrivateRoute>
                 <WelcomePage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/comprar-creditos"
+            element={
+              <PrivateRoute>
+                <ComprarCreditos />
               </PrivateRoute>
             }
           />

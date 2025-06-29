@@ -4,7 +4,7 @@ const db = require("../models/db");
 const bcrypt = require("bcrypt");
 
 router.post("/register", async (req, res) => {
-  const { nombre, apellido, documento, usuario, contraseña } = req.body;
+  const { nombre, apellido, documento, usuario, email, contraseña } = req.body;
 
   const hash = await bcrypt.hash(contraseña, 10); // 👈 hasheo fuerte
 
@@ -14,9 +14,9 @@ router.post("/register", async (req, res) => {
     }
 
     db.run(
-      `INSERT INTO Usuarios (nombre, apellido, documento, usuario, contraseña, creditos, rol)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nombre, apellido, documento, usuario, hash, 0, "jugador"],
+      `INSERT INTO Usuarios (nombre, apellido, documento, usuario, email, contraseña, creditos, rol)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, apellido, documento, usuario, email, hash, 0, "jugador"],
       function (err) {
         if (err) {
           return res.status(500).json({ error: "Error al registrar" });

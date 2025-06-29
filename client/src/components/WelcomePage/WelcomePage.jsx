@@ -18,9 +18,10 @@ const WelcomePage = () => {
   const [mensajeGlobal, setMensajeGlobal] = useState("");
   const [cantidadCartones, setCantidadCartones] = useState(1);
   const [cartones, setCartones] = useState(0);
-  const navigate = useNavigate();
   const [partidaVisible, setPartidaVisible] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [cartonesDisponibles, setCartonesDisponibles] = useState(0);
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
@@ -68,6 +69,15 @@ const WelcomePage = () => {
     socket.on("connect", handleReconexion);
     return () => socket.off("connect", handleReconexion);
   }, [socket, user, partidaVisible]);
+
+  useEffect(() => {
+    const handleDatosUsuario = ({ cartones }) => {
+      setCartonesDisponibles(cartones);
+    };
+
+    socket.on("datosUsuario", handleDatosUsuario);
+    return () => socket.off("datosUsuario", handleDatosUsuario);
+  }, [socket]);
 
   useEffect(() => {
     const obtenerPartidas = async () => {
@@ -227,14 +237,16 @@ const WelcomePage = () => {
           {cartones !== undefined && (
             <h2>
               CARTONES PARA ESTA PARTIDA:{" "}
-              <span className="values">{cartones} / 12</span>
+              <span className="values">{cartonesDisponibles} / 12</span>
             </h2>
           )}
         </div>
         <h2>{texto}</h2>
         <div className="welco-btn-group">
           <button className="btn">COMO JUGAR</button>
-          <button className="btn">COMPRAR CRÉDITOS</button>
+          <button className="btn" onClick={() => navigate("/comprar-creditos")}>
+            COMPRAR CREDITOS
+          </button>
           <button className="btn" onClick={() => setModalAbierto(true)}>
             COMPRAR CARTONES
           </button>

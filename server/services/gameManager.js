@@ -224,8 +224,6 @@ module.exports = {
   obtenerPartidaActual: async () => {
     return new Promise((resolve, reject) => {
       const ahora = Date.now();
-
-      // Buscar partida activa
       db.get(
         `SELECT * FROM Partidas WHERE estado = 'activa' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
         [],
@@ -233,7 +231,6 @@ module.exports = {
           if (err) return reject(err);
           if (partidaActiva) return resolve(partidaActiva);
 
-          // Si no hay activa, buscar próxima pendiente válida
           db.get(
             `SELECT * FROM Partidas WHERE estado = 'pendiente' ORDER BY fecha_hora_jugada ASC LIMIT 1`,
             [],

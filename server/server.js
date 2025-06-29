@@ -1,9 +1,15 @@
-const express = require("express");
-const http = require("http");
-const cors = require("cors");
-const sqlite3 = require("sqlite3").verbose();
-const { Server } = require("socket.io");
-const partidasRoutes = require("./routes/partidas");
+import express from "express";
+import http from "http";
+import cors from "cors";
+import sqlite3 from "sqlite3";
+import { Server } from "socket.io";
+import partidasRoutes from "./routes/partidas.js";
+import mercadoPagoRoutes from "./routes/mercadopago.js";
+import registrarRutas from "./routes/apiRoutes.js";
+import registrarSockets from "./socket/socketHandlers.js";
+import iniciarTimerEspera from "./services/partidaScheduler.js";
+
+sqlite3.verbose();
 
 const app = express();
 const server = http.createServer(app);
@@ -17,11 +23,10 @@ const io = new Server(server, {
 
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
-app.use("/api/partidas", partidasRoutes);
 
-const registrarRutas = require("./routes/apiRoutes");
-const registrarSockets = require("./socket/socketHandlers");
-const iniciarTimerEspera = require("./services/partidaScheduler");
+app.use("/api/partidas", partidasRoutes);
+app.use("/api/mercadopago", mercadoPagoRoutes);
+
 registrarRutas(app);
 registrarSockets(io);
 iniciarTimerEspera(io);

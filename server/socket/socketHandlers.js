@@ -1,5 +1,3 @@
-// socket/socketHandlers.js
-
 const db = require("../models/db");
 const generarCartonesEnLote = require("../services/cartonGenerator");
 const gameManager = require("../services/gameManager");
@@ -70,7 +68,7 @@ function registrarSockets(io) {
                 );
               }
 
-              if (callback) callback({ ok: true }); // ✅ confirmación al cliente
+              if (callback) callback({ ok: true });
             }
           );
         }
@@ -158,7 +156,6 @@ function registrarSockets(io) {
 
       if (typeof callback !== "function") return;
 
-      // ❌ Si está finalizada, no la devuelvas como activa
       if (partidaActual && partidaActual.estado === "finalizada") {
         return db.get(
           `SELECT * FROM Partidas 
@@ -195,7 +192,6 @@ function registrarSockets(io) {
         );
       }
 
-      // ✅ Si hay una partida activa, devolvé esa
       if (partidaActual && partidaActual.estado === "activa") {
         db.get(
           `SELECT * FROM Partidas WHERE id_partida = ?`,

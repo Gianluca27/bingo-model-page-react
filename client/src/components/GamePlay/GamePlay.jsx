@@ -65,6 +65,7 @@ const GamePlay = () => {
   const [mensajeInicio, setMensajeInicio] = useState("");
   const [mostrarAviso, setMostrarAviso] = useState(false);
   const [bloqueado, setBloqueado] = useState(false);
+  const [loginExitoso, setLoginExitoso] = useState(false);
 
   const cartonesRef = useRef([]);
   useEffect(() => {
@@ -242,42 +243,7 @@ const GamePlay = () => {
         return;
       }
 
-      socket.emit("unirseAPartidaActual", (data) => {
-        if (!data?.partida) {
-          setModoEspectador(true);
-          setBloqueado(true);
-          return;
-        }
-
-        setPartida(data.partida);
-        setFechaSorteo(data.partida.fecha_hora_jugada);
-
-        const ahora = new Date();
-        const inicio = parseFechaComoLocal(data.partida.fecha_hora_jugada);
-        const diferenciaMilisegundos = inicio.getTime() - ahora.getTime();
-
-        const esPartidaActiva = data.partida.estado === "activa";
-        const faltanMenosDe5Min =
-          diferenciaMilisegundos > 0 && diferenciaMilisegundos <= 5 * 60 * 1000;
-
-        if (!esPartidaActiva && !faltanMenosDe5Min) {
-          setBloqueado(true);
-          return;
-        }
-
-        if (Array.isArray(data.bolillas)) {
-          setDrawnNumbers(data.bolillas);
-          setContador(data.bolillas.length);
-          setBolillaActual(data.bolillas.at(-1) ?? null);
-        }
-
-        const cartonesValidos = (data.cartones || []).filter(
-          (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
-        );
-
-        cargarCartones({ ...data, cartones: cartonesValidos });
-        // setModoEspectador(!esPartidaActiva);
-      });
+      setLoginExitoso(true); // Esperamos a que el socket.usuario esté seteado
     });
 
     socket.emit("solicitarInfoPartida", (nuevaPartida) => {
@@ -308,18 +274,72 @@ const GamePlay = () => {
   }, [socket, user?.username]);
 
   useEffect(() => {
+    if (!loginExitoso) return;
+
+    socket.emit("unirseAPartidaActual", (data) => {
+      if (!data?.partida) {
+        setModoEspectador(true);
+        setBloqueado(true);
+        return;
+      }
+
+      setPartida(data.partida);
+      setFechaSorteo(data.partida.fecha_hora_jugada);
+
+      const ahora = new Date();
+      const inicio = parseFechaComoLocal(data.partida.fecha_hora_jugada);
+      const diferenciaMilisegundos = inicio.getTime() - ahora.getTime();
+
+      const esPartidaActiva = data.partida.estado === "activa";
+      const faltanMenosDe5Min =
+        diferenciaMilisegundos > 0 && diferenciaMilisegundos <= 5 * 60 * 1000;
+
+      if (!esPartidaActiva && faltanMenosDe5Min) {
+        setDrawnNumbers([]);
+        setContador(0);
+        setBolillaActual(null);
+        setCartones([]);
+        cartonesRef.current = [];
+        marcadasCartonesRef.current = [];
+      }
+
+      if (!esPartidaActiva && !faltanMenosDe5Min) {
+        setBloqueado(true);
+        return;
+      }
+
+      if (Array.isArray(data.bolillas)) {
+        setDrawnNumbers(data.bolillas);
+        setContador(data.bolillas.length);
+        setBolillaActual(data.bolillas.at(-1) ?? null);
+      }
+
+      const cartonesValidos = (data.cartones || []).filter(
+        (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+      );
+
+      cargarCartones({ ...data, cartones: cartonesValidos });
+    });
+  }, [loginExitoso]);
+
+  useEffect(() => {
     if (!partida?.fecha_hora_jugada) return;
 
     const inicio = new Date(partida.fecha_hora_jugada).getTime();
     const ahora = new Date().getTime();
 
     if (ahora >= inicio) {
+      // 🧹 Limpiar estado porque la partida va a empezar en breve
+      setDrawnNumbers([]);
+      setBolillaActual(null);
+      setContador(0);
+      marcadasCartonesRef.current = [];
+
       setMostrarAviso(false);
       setMensajeInicio("");
       return;
     }
 
-    // 🧹 Limpiar estado anterior al entrar a una nueva partida
     setDrawnNumbers([]);
     setBolillaActual(null);
     setContador(0);

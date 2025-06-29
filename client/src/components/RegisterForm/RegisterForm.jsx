@@ -12,9 +12,11 @@ const RegisterForm = () => {
     apellido: "",
     dni: "",
     usuario: "",
+    email: "",
     contraseña: "",
     confirmar: "",
   });
+
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
@@ -25,7 +27,8 @@ const RegisterForm = () => {
     e.preventDefault();
     setError("");
 
-    const { nombre, apellido, dni, usuario, contraseña, confirmar } = formData;
+    const { nombre, apellido, dni, usuario, email, contraseña, confirmar } =
+      formData;
 
     if (contraseña !== confirmar) {
       setError("Las contraseñas no coinciden");
@@ -39,8 +42,9 @@ const RegisterForm = () => {
         body: JSON.stringify({
           nombre,
           apellido,
-          documento: dni,
+          dni,
           usuario,
+          email,
           contraseña,
         }),
       });
@@ -113,6 +117,14 @@ const RegisterForm = () => {
           name="usuario"
           placeholder="Usuario"
           value={formData.usuario}
+          onChange={handleChange}
+          required
+        />
+        <input
+          type="email"
+          name="email"
+          placeholder="Correo electrónico"
+          value={formData.email}
           onChange={handleChange}
           required
         />

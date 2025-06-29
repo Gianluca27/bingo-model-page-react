@@ -72,6 +72,9 @@ const CartonPurchaseModal = ({ onClose, onConfirm, user }) => {
     }
 
     onConfirm(partidaSeleccionada, cantidad);
+
+    socket.emit("solicitarDatosUsuario");
+
     onClose();
   };
 

@@ -449,17 +449,6 @@ function registrarSockets(io) {
       );
     });
 
-    socket.on("verificarCompraPrevia", (callback) => {
-      const nombre = socket.usuario;
-      db.get(
-        "SELECT COUNT(*) as total FROM CartonesAsignados WHERE usuario = ?",
-        [nombre],
-        (err, row) => {
-          callback(row?.total > 0);
-        }
-      );
-    });
-
     socket.on("obtenerCartonesDisponibles", (idPartida, callback) => {
       const nombre = socket.usuario;
       db.all(

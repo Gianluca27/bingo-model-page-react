@@ -12,6 +12,7 @@ const UsersPage = () => {
     nombre: "",
     apellido: "",
     documento: "",
+    email: "",
     usuario: "",
     password: "",
     rol: "usuario",
@@ -19,13 +20,16 @@ const UsersPage = () => {
   });
 
   const [busqueda, setBusqueda] = useState("");
-  const [campoBusqueda, setCampoBusqueda] = useState("usuario"); // valor por defecto
+  const [campoBusqueda, setCampoBusqueda] = useState("usuario");
 
   const fetchUsuarios = async () => {
     const { data } = await axios.get("http://localhost:3001/api/usuarios");
-    setUsuarios(data);
+    const mapeados = data.map((u) => ({
+      ...u,
+      id_usuario: u.id ?? u.id_usuario,
+    }));
+    setUsuarios(mapeados);
   };
-
   useEffect(() => {
     fetchUsuarios();
   }, []);
@@ -38,14 +42,24 @@ const UsersPage = () => {
   const abrirFormulario = (usuario = null) => {
     if (usuario) {
       setEditando(usuario.id_usuario);
-      const { password, ...rest } = usuario;
-      setFormData({ ...rest, password: "" });
+      setFormData({
+        id_usuario: usuario.id_usuario ?? null,
+        nombre: usuario.nombre ?? "",
+        apellido: usuario.apellido ?? "",
+        documento: usuario.documento ?? "",
+        email: usuario.email ?? "",
+        usuario: usuario.usuario ?? "",
+        password: "",
+        rol: usuario.rol ?? "usuario",
+        creditos: usuario.creditos ?? 0,
+      });
     } else {
       setEditando(null);
       setFormData({
         nombre: "",
         apellido: "",
         documento: "",
+        email: "",
         usuario: "",
         password: "",
         rol: "usuario",
@@ -61,18 +75,29 @@ const UsersPage = () => {
   };
 
   const guardarUsuario = async () => {
-    if (editando !== null) {
-      const url = `http://localhost:3001/api/usuarios/${editando}`;
-      const body = { ...formData };
-      if (!body.password) delete body.password;
+    try {
+      if (editando !== null) {
+        const url = `http://localhost:3001/api/usuarios/${editando}`;
+        const body = { ...formData };
+        if (!body.password) delete body.password;
 
-      await axios.put(url, body);
-    } else {
-      await axios.post("http://localhost:3001/api/usuarios", formData);
+        if (!body.password) {
+          delete body.password;
+        } else {
+          body.contraseña = body.password;
+        }
+        delete body.password;
+        await axios.put(url, body);
+      } else {
+        await axios.post("http://localhost:3001/api/usuarios", formData);
+      }
+
+      fetchUsuarios();
+      cerrarFormulario();
+    } catch (error) {
+      console.error("❌ Error al guardar usuario:", error.message);
+      alert("Error al guardar usuario.");
     }
-
-    fetchUsuarios();
-    cerrarFormulario();
   };
 
   const eliminarUsuario = async (id, usuario) => {
@@ -129,6 +154,7 @@ const UsersPage = () => {
                 <th>Nombre</th>
                 <th>Apellido</th>
                 <th>DNI</th>
+                <th>Email</th>
                 <th>Usuario</th>
                 <th>Créditos</th>
                 <th>Acciones</th>
@@ -140,6 +166,7 @@ const UsersPage = () => {
                   <td>{u.nombre}</td>
                   <td>{u.apellido}</td>
                   <td>{u.documento}</td>
+                  <td>{u.email}</td>
                   <td>{u.usuario}</td>
                   <td>{u.creditos}</td>
                   <td>
@@ -150,7 +177,7 @@ const UsersPage = () => {
                       ✏️
                     </button>
                     <button
-                      onClick={() => eliminarUsuario(u.id_usuario)}
+                      onClick={() => eliminarUsuario(u.id_usuario, u.usuario)}
                       className="btn-danger"
                     >
                       🗑️
@@ -169,28 +196,36 @@ const UsersPage = () => {
               <input
                 name="nombre"
                 placeholder="Nombre"
-                value={formData.nombre}
+                value={formData.nombre ?? ""}
                 onChange={handleInputChange}
               />
               <label>Apellido</label>
               <input
                 name="apellido"
                 placeholder="Apellido"
-                value={formData.apellido}
+                value={formData.apellido ?? ""}
                 onChange={handleInputChange}
               />
               <label>Documento</label>
               <input
                 name="documento"
                 placeholder="DNI"
-                value={formData.documento}
+                value={formData.documento ?? ""}
+                onChange={handleInputChange}
+              />
+              <label>Email</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email ?? ""}
                 onChange={handleInputChange}
               />
               <label>Usuario</label>
               <input
                 name="usuario"
                 placeholder="Usuario"
-                value={formData.usuario}
+                value={formData.usuario ?? ""}
                 onChange={handleInputChange}
               />
               {editando === null && (

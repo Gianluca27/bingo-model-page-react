@@ -19,7 +19,6 @@ function generarCombinacionesUnicas(cantidad) {
   );
 }
 
-// Generamos 100 combinaciones únicas
 const combinaciones = generarCombinacionesUnicas(100);
 
 module.exports = {

@@ -161,6 +161,33 @@ const GamePlay = () => {
       });
   };
 
+  const cargarCartones = (data) => {
+    const cartonesValidos = (data.cartones || []).filter(
+      (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
+    );
+
+    cartonesRef.current = cartonesValidos;
+    setModoEspectador(cartonesValidos.length === 0);
+
+    const bolillas = Array.isArray(data.bolillas) ? data.bolillas : [];
+    setDrawnNumbers(bolillas);
+    setContador(bolillas.length);
+    setBolillaActual(bolillas.at(-1) ?? null);
+
+    const ordenados = ordenarCartonesPorLineas(cartonesValidos, bolillas);
+    setCartones(ordenados);
+
+    const marcadas = [];
+    cartonesValidos.forEach((carton) => {
+      carton.contenido.forEach((celda) => {
+        if (bolillas.includes(celda)) {
+          marcadas.push(celda);
+        }
+      });
+    });
+    marcadasCartonesRef.current = marcadas;
+  };
+
   useEffect(() => {
     const handleEstadoActual = ({
       bolillasEmitidas,
@@ -176,7 +203,6 @@ const GamePlay = () => {
         setContador(bolillasEmitidas.length);
         setBolillaActual(bolillasEmitidas.at(-1) ?? null);
 
-        // Restaurar marcas y ordenar cartones si ya hay cargados
         if (cartonesRef.current.length > 0) {
           const ordenados = ordenarCartonesPorLineas(
             cartonesRef.current,
@@ -243,7 +269,7 @@ const GamePlay = () => {
         return;
       }
 
-      setLoginExitoso(true); // Esperamos a que el socket.usuario esté seteado
+      setLoginExitoso(true);
     });
 
     socket.emit("solicitarInfoPartida", (nuevaPartida) => {
@@ -373,33 +399,6 @@ const GamePlay = () => {
     return () => clearInterval(interval);
   }, [partida?.fecha_hora_jugada]);
 
-  const cargarCartones = (data) => {
-    const cartonesValidos = (data.cartones || []).filter(
-      (c) => Array.isArray(c?.contenido) && c.contenido.length === 27
-    );
-
-    cartonesRef.current = cartonesValidos;
-    setModoEspectador(cartonesValidos.length === 0);
-
-    const bolillas = Array.isArray(data.bolillas) ? data.bolillas : [];
-    setDrawnNumbers(bolillas);
-    setContador(bolillas.length);
-    setBolillaActual(bolillas.at(-1) ?? null);
-
-    const ordenados = ordenarCartonesPorLineas(cartonesValidos, bolillas);
-    setCartones(ordenados);
-
-    const marcadas = [];
-    cartonesValidos.forEach((carton) => {
-      carton.contenido.forEach((celda) => {
-        if (bolillas.includes(celda)) {
-          marcadas.push(celda);
-        }
-      });
-    });
-    marcadasCartonesRef.current = marcadas;
-  };
-
   useEffect(() => {
     if (!socket) return;
 
@@ -419,18 +418,27 @@ const GamePlay = () => {
       setModalPremio({ tipo, ganadores: [jugador], monto });
     };
 
-    const onGanadorLinea = ({ jugador, monto }) => {
-      mostrarModalGanador("Línea", jugador, monto);
+    const onGanadorLinea = ({ nombres, premio }) => {
+      setModalPremio({ tipo: "Línea", ganadores: nombres, monto: premio });
+      setMensajeGlobal(
+        `🎉 Línea cantada por: ${nombres.join(", ")} - Premio $${premio}`
+      );
       if (soundOn) audioEventoHandler("ganador-linea");
     };
 
-    const onGanadorBingo = ({ jugador, monto }) => {
-      mostrarModalGanador("Bingo", jugador, monto);
+    const onGanadorBingo = ({ nombres, premio }) => {
+      setModalPremio({ tipo: "Bingo", ganadores: nombres, monto: premio });
+      setMensajeGlobal(
+        `🏆 BINGO por: ${nombres.join(", ")} - Premio $${premio}`
+      );
       if (soundOn) audioEventoHandler("ganador-bingo");
     };
 
-    const onGanadorAcumulado = ({ jugador, monto }) => {
-      mostrarModalGanador("Acumulado", jugador, monto);
+    const onGanadorAcumulado = ({ nombres, premio }) => {
+      setModalPremio({ tipo: "Acumulado", ganadores: nombres, monto: premio });
+      setMensajeGlobal(
+        `💰 Acumulado ganado por: ${nombres.join(", ")} - Premio $${premio}`
+      );
       if (soundOn) audioEventoHandler("ganador-acumulado");
     };
 
@@ -541,17 +549,11 @@ const GamePlay = () => {
       {mostrarAviso && <h2 className="aviso">{mensajeInicio}</h2>}
       {modalPremio && (
         <div className="modal-premio">
-          <div className="modal-contenido">
-            <h2>¡{modalPremio.tipo}!</h2>
-            <p>
-              <strong>Ganador:</strong> {modalPremio.ganadores.join(", ")}
-            </p>
-            <p>
-              <strong>Premio:</strong> $
-              {modalPremio.monto.toLocaleString("es-AR")}
-            </p>
-            <button onClick={() => setModalPremio(null)}>Cerrar</button>
-          </div>
+          <p>
+            {modalPremio.tipo === "Bingo" ? "🏆" : "🎉"} {modalPremio.tipo}{" "}
+            cantado por: <strong>{modalPremio.ganadores.join(", ")}</strong> -
+            Premio: ${modalPremio.monto}
+          </p>
         </div>
       )}
       {!modoEspectador && cartones.length > 0 && (

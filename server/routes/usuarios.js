@@ -6,7 +6,7 @@ const bcrypt = require("bcrypt");
 router.post("/register", async (req, res) => {
   const { nombre, apellido, documento, usuario, email, contraseña } = req.body;
 
-  const hash = await bcrypt.hash(contraseña, 10); // 👈 hasheo fuerte
+  const hash = await bcrypt.hash(contraseña, 10);
 
   db.get("SELECT * FROM Usuarios WHERE usuario = ?", [usuario], (err, user) => {
     if (user) {
@@ -69,6 +69,8 @@ router.post("/", async (req, res) => {
     usuario,
     password,
     creditos = 0,
+    email = "",
+    rol = "usuario",
   } = req.body;
 
   if (!usuario || !password) {
@@ -78,9 +80,9 @@ router.post("/", async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     db.run(
-      `INSERT INTO Usuarios (nombre, apellido, documento, usuario, contraseña, creditos)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [nombre, apellido, documento, usuario, hash, creditos],
+      `INSERT INTO Usuarios (nombre, apellido, documento, usuario, email, contraseña, creditos, rol)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, apellido, documento, usuario, email, hash, creditos, rol],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, id: this.lastID });
@@ -91,16 +93,37 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", (req, res) => {
-  const { usuario, contraseña, creditos } = req.body;
-  db.run(
-    "UPDATE Usuarios SET usuario = ?, contraseña = ?, creditos = ? WHERE id_usuario = ?",
-    [usuario, contraseña, creditos, req.params.id],
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ ok: true });
-    }
-  );
+router.put("/:id", async (req, res) => {
+  const {
+    usuario,
+    creditos,
+    contraseña,
+    nombre,
+    apellido,
+    documento,
+    email,
+    rol,
+  } = req.body;
+
+  let query = `
+    UPDATE Usuarios 
+    SET usuario = ?, creditos = ?, nombre = ?, apellido = ?, documento = ?, email = ?, rol = ?
+  `;
+  const params = [usuario, creditos, nombre, apellido, documento, email, rol];
+
+  if (contraseña) {
+    const hash = await bcrypt.hash(contraseña, 10);
+    query += `, contraseña = ?`;
+    params.push(hash);
+  }
+
+  query += ` WHERE id_usuario = ?`;
+  params.push(req.params.id);
+
+  db.run(query, params, (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ ok: true });
+  });
 });
 
 router.delete("/:id", (req, res) => {

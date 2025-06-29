@@ -1,5 +1,3 @@
-// services/gameManager.js
-
 const db = require("../models/db");
 const { Server } = require("socket.io");
 const { combinaciones } = require("./combinacionesBolillas");
@@ -53,6 +51,46 @@ function obtenerPartidaActual() {
 
 function obtenerBolillasEmitidas() {
   return bolillasEmitidasGlobal;
+}
+
+function premiarGanadores(
+  partida,
+  db,
+  ganadoresLinea,
+  ganadoresBingo,
+  ganadoresAcumulado
+) {
+  const creditos = {};
+
+  for (const { usuario } of ganadoresLinea) {
+    creditos[usuario] =
+      (creditos[usuario] || 0) + (Number(partida.premio_linea) || 0);
+  }
+  for (const { usuario } of ganadoresBingo) {
+    creditos[usuario] =
+      (creditos[usuario] || 0) + (Number(partida.premio_bingo) || 0);
+  }
+  for (const { usuario } of ganadoresAcumulado) {
+    creditos[usuario] =
+      (creditos[usuario] || 0) + (Number(partida.premio_acumulado) || 0);
+  }
+
+  for (const [usuario, monto] of Object.entries(creditos)) {
+    db.run(
+      `UPDATE Usuarios SET creditos = creditos + ? WHERE usuario = ?`,
+      [monto, usuario],
+      (err) => {
+        if (err) {
+          console.error(
+            `❌ Error al acreditar premio a ${usuario}:`,
+            err.message
+          );
+        } else {
+          console.log(`💰 Premio otorgado a ${usuario}: +$${monto}`);
+        }
+      }
+    );
+  }
 }
 
 function iniciarSorteo(io, partida) {
@@ -141,13 +179,19 @@ function iniciarSorteo(io, partida) {
                 bolillasEmitidasGlobal.includes(n)
               );
               if (aciertos.length === 5) {
-                lineaCantada = true;
                 ganadoresLinea.push({ usuario, numeroCarton });
-                io.emit("ganadoresLinea", ganadoresLinea);
+                lineaCantada = true;
                 break;
               }
             }
+            if (lineaCantada) break;
           }
+          if (lineaCantada) break;
+        }
+
+        if (ganadoresLinea.length > 0) {
+          const nombres = ganadoresLinea.map((g) => g.usuario);
+          io.emit("ganadorLinea", { nombres, premio: partida.premio_linea });
         }
       }
 
@@ -163,9 +207,14 @@ function iniciarSorteo(io, partida) {
               acumuladoHabilitado
             ) {
               ganadoresAcumulado.push({ usuario, numeroCarton });
-              io.emit("ganadoresAcumulado", ganadoresAcumulado);
+              const nombres = ganadoresAcumulado.map((g) => g.usuario);
+              io.emit("ganadorAcumulado", {
+                nombres,
+                premio: partida.premio_acumulado,
+              });
             }
-            io.emit("ganadoresBingo", ganadoresBingo);
+            const nombres = ganadoresBingo.map((g) => g.usuario);
+            io.emit("ganadorBingo", { nombres, premio: partida.premio_bingo });
             clearInterval(intervalo);
             setTimeout(finalizar, 3000);
             return;
@@ -178,7 +227,20 @@ function iniciarSorteo(io, partida) {
       console.log("✅ Sorteo finalizado.");
       partidaEnJuego = false;
       sorteoActivo = false;
-      io.emit("finSorteo");
+
+      premiarGanadores(
+        partida,
+        db,
+        ganadoresLinea,
+        ganadoresBingo,
+        ganadoresAcumulado
+      );
+
+      io.emit("finSorteo", {
+        ganadoresLinea,
+        ganadoresBingo,
+        ganadoresAcumulado,
+      });
 
       db.run("UPDATE Partidas SET estado = 'finalizada' WHERE id_partida = ?", [
         partida.id_partida,

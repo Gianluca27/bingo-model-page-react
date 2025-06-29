@@ -10,7 +10,7 @@ const RegisterForm = () => {
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
-    dni: "",
+    documento: "",
     usuario: "",
     email: "",
     contraseña: "",
@@ -42,7 +42,7 @@ const RegisterForm = () => {
         body: JSON.stringify({
           nombre,
           apellido,
-          dni,
+          documento,
           usuario,
           email,
           contraseña,
@@ -107,9 +107,9 @@ const RegisterForm = () => {
           required
         />
         <input
-          name="dni"
+          name="documento"
           placeholder="DNI"
-          value={formData.dni}
+          value={formData.documento}
           onChange={handleChange}
           required
         />
